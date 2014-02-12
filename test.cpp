@@ -1,13 +1,14 @@
 #include <iostream>
 using namespace std;
 
-#include "threadpool.hpp"
+#include "mythreadpool.hpp"
+using namespace myutils;
 
-class TestTaskEntity : public ThreadTaskEntity {
+class TestThreadTask : public MyThreadTask {
 
     public:
 
-        TestTaskEntity(const string& msg)
+        TestThreadTask(const string& msg)
         {
             m_msg = msg;
         }
@@ -24,9 +25,9 @@ class TestTaskEntity : public ThreadTaskEntity {
 
 int main(void)
 {
-    ThreadPool tp(5);
+    MyThreadPool tp(5);
 
-    tp.addTask(std::shared_ptr<ThreadTaskEntity>(new TestTaskEntity("Hello, world!")));
+    tp.addTask(std::shared_ptr<MyThreadTask>(new TestThreadTask("Hello, world!")));
 
     return 0;
 }

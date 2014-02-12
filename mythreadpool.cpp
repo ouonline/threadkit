@@ -1,9 +1,10 @@
 #include <unistd.h>
-#include "threadpool.hpp"
+#include "mythreadpool.hpp"
+using namespace myutils;
 
 static void* worker_func(void* arg)
 {
-    ThreadTaskQueue* q = (ThreadTaskQueue*)arg;
+    MyThreadTaskQueue* q = (MyThreadTaskQueue*)arg;
 
     while (true) {
         pthread_mutex_lock(&q->mutex);
@@ -11,7 +12,7 @@ static void* worker_func(void* arg)
         while (q->tasklist.empty())
             pthread_cond_wait(&q->cond, &q->mutex);
 
-        std::shared_ptr<ThreadTaskEntity> t = q->tasklist.front();
+        shared_ptr<MyThreadTask> t = q->tasklist.front();
         q->tasklist.pop();
 
         pthread_mutex_unlock(&q->mutex);
@@ -25,7 +26,7 @@ static void* worker_func(void* arg)
     return nullptr;
 }
 
-void ThreadPool::doAddTask(const std::shared_ptr<ThreadTaskEntity>& t)
+void MyThreadPool::doAddTask(const shared_ptr<MyThreadTask>& t)
 {
     pthread_mutex_lock(&m_queue.mutex);
     m_queue.tasklist.push(t);
@@ -33,7 +34,7 @@ void ThreadPool::doAddTask(const std::shared_ptr<ThreadTaskEntity>& t)
     pthread_mutex_unlock(&m_queue.mutex);
 }
 
-bool ThreadPool::addTask(const std::shared_ptr<ThreadTaskEntity>& t)
+bool MyThreadPool::addTask(const shared_ptr<MyThreadTask>& t)
 {
     if (!m_valid)
         return false;
@@ -45,7 +46,7 @@ bool ThreadPool::addTask(const std::shared_ptr<ThreadTaskEntity>& t)
     return true;
 }
 
-ThreadPool::ThreadPool(int num)
+MyThreadPool::MyThreadPool(int num)
 {
     m_valid = false;
 
@@ -63,14 +64,14 @@ ThreadPool::ThreadPool(int num)
         m_valid = true;
 }
 
-ThreadPool::~ThreadPool()
+MyThreadPool::~MyThreadPool()
 {
     m_valid = false; // cannot addTask() any more
 
     for (size_t i = 0; i < m_pidlist.size(); ++i)
-        doAddTask(std::shared_ptr<ThreadTaskEntity>(nullptr));
+        doAddTask(shared_ptr<MyThreadTask>(nullptr));
 
     // waiting for remaining tasks to complete
-    for (vector<pthread_t>::iterator i = m_pidlist.begin(); i != m_pidlist.end(); ++i)
+    for (auto i = m_pidlist.begin(); i != m_pidlist.end(); ++i)
         pthread_join(*i, nullptr);
 }
