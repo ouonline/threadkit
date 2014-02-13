@@ -1,18 +1,26 @@
+CC := gcc
 CXX := g++
-CXXFLAGS := -O2 -Wall -Werror -std=c++0x
+CFLAGS := -O2 -Wall -Werror
+CXXFLAGS := $(CFLAGS) -std=c++0x
 LIBS := -lpthread
 
-TARGET := test-mythreadpool
+TARGET := test-mythreadpool test-threadpool
 
 .PHONY: all clean
 
 all: $(TARGET)
 
-test-mythreadpool: test.o mythreadpool.o
+test-mythreadpool: test-mythreadpool.o mythreadpool.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
 
+test-threadpool: test-threadpool.o threadpool.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+.c.o:
+	$(CC) $(CFLAGS) -c $< -o $@
+
 .cpp.o:
-	$(CXX) $(CXXFLAGS) -c $<
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(TARGET) *.o
