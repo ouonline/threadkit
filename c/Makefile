@@ -1,7 +1,6 @@
 CC := gcc
 CFLAGS := -O2 -Wall -Werror
 
-INCLUDE := -I../../kernel-utils
 LIBS := -lpthread
 
 OBJS := $(patsubst %.c, %.o, $(wildcard *.c))
@@ -16,7 +15,7 @@ test-threadpool: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 .c.o:
-	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(TARGET) $(OBJS)

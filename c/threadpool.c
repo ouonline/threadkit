@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "threadpool.h"
-#include "../mm/mm.h"
+#include "../../mm/mm.h"
 
 /* ------------------------------------------------------------------------- */
 
@@ -75,7 +75,6 @@ static inline void thread_task_queue_destroy(struct thread_task_queue* q)
         thread_task_free(list_entry(node, struct thread_task, node));
     pthread_mutex_unlock(&q->mutex);
 
-    list_init(&q->tasklist);
     pthread_cond_destroy(&q->cond);
     pthread_mutex_destroy(&q->mutex);
 }

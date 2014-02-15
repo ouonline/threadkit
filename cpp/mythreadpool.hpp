@@ -4,12 +4,11 @@
 #include <queue>
 #include <vector>
 #include <memory>
+#include <pthread.h>
 
 using std::queue;
 using std::vector;
 using std::shared_ptr;
-
-#include <pthread.h>
 
 /* ------------------------------------------------------------------------- */
 
