@@ -1,17 +1,24 @@
 CC := gcc
-CFLAGS := -O2 -Wall -Werror
+
+ifeq ($(release), y)
+    CFLAGS := -O2 -DNDEBUG
+else
+    CFLAGS := -g
+endif
+
+CFLAGS := $(CFLAGS) -Wall -Werror
 
 LIBS := -lpthread
 
 OBJS := $(patsubst %.c, %.o, $(wildcard *.c))
 
-TARGET := test-threadpool
+TARGET := test_threadpool
 
 .PHONY: all clean
 
 all: $(TARGET)
 
-test-threadpool: $(OBJS)
+$(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 .c.o:

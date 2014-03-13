@@ -1,17 +1,24 @@
 CXX := g++
-CXXFLAGS := -O2 -Wall -Werror -std=c++0x
+
+ifeq ($(release), y)
+    CXXFLAGS := -O2 -DNDEBUG
+else
+    CXXFLAGS := -g
+endif
+
+CXXFLAGS := $(CXXFLAGS) -Wall -Werror -std=c++0x
 
 LIBS := -lpthread
 
 OBJS := $(patsubst %.cpp, %.o, $(wildcard *.cpp))
 
-TARGET := test-mythreadpool
+TARGET := test_mythreadpool
 
 .PHONY: all clean
 
 all: $(TARGET)
 
-test-mythreadpool: $(OBJS)
+$(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
 
 .cpp.o:
