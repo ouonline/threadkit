@@ -10,15 +10,15 @@ static void print(void* arg)
 int main(void)
 {
     const char* str = "Hello, world!";
-    struct thread_pool* tp;
+    struct threadpool* tp;
 
-    tp = thread_pool_init(5);
+    tp = threadpool_init(5);
     if (!tp)
         return 0;
 
-    thread_pool_add_task(tp, (void*)str, print);
+    threadpool_add_task(tp, (void*)str, print);
 
-    thread_pool_destroy(tp);
+    threadpool_destroy(tp);
 
     return 0;
 }

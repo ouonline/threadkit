@@ -10,15 +10,15 @@ struct thread_task_queue {
     struct list_node tasklist;
 };
 
-struct thread_pool {
-    int thread_num;
+struct threadpool {
+    unsigned int thread_num;
     struct thread_task_queue queue;
     pthread_t pidlist[0];
 };
 
-struct thread_pool* thread_pool_init(int thread_num);
-void thread_pool_destroy(struct thread_pool*);
+struct threadpool* threadpool_init(unsigned int thread_num);
+void threadpool_destroy(struct threadpool*);
 
-int thread_pool_add_task(struct thread_pool*, void* arg, void (*func)(void*));
+int threadpool_add_task(struct threadpool*, void* arg, void (*func)(void*));
 
 #endif

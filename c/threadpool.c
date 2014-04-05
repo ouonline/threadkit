@@ -102,7 +102,7 @@ static void* worker_thread(void* arg)
     return NULL;
 }
 
-static inline int do_add_task(struct thread_pool* tp, void* arg,
+static inline int do_add_task(struct threadpool* tp, void* arg,
                               void (*func)(void*))
 {
     struct thread_task* task;
@@ -115,8 +115,8 @@ static inline int do_add_task(struct thread_pool* tp, void* arg,
     return 0;
 }
 
-int thread_pool_add_task(struct thread_pool* tp, void* arg,
-                         void (*func)(void*))
+int threadpool_add_task(struct threadpool* tp, void* arg,
+                        void (*func)(void*))
 {
     if (!tp || tp->thread_num == 0 || !func)
         return -1;
@@ -124,15 +124,15 @@ int thread_pool_add_task(struct thread_pool* tp, void* arg,
     return do_add_task(tp, arg, func);
 }
 
-struct thread_pool* thread_pool_init(int thread_num)
+struct threadpool* threadpool_init(unsigned int thread_num)
 {
-    int i;
-    struct thread_pool* tp;
+    unsigned int i;
+    struct threadpool* tp;
 
-    if (thread_num <= 0)
+    if (thread_num == 0)
         thread_num = sysconf(_SC_NPROCESSORS_CONF);
 
-    tp = mm_alloc(sizeof(struct thread_pool) + sizeof(pthread_t) * thread_num);
+    tp = mm_alloc(sizeof(struct threadpool) + sizeof(pthread_t) * thread_num);
     if (!tp)
         return NULL;
 
@@ -155,9 +155,9 @@ struct thread_pool* thread_pool_init(int thread_num)
     return tp;
 }
 
-void thread_pool_destroy(struct thread_pool* tp)
+void threadpool_destroy(struct threadpool* tp)
 {
-    int i, num;
+    unsigned int i, num;
 
     if (!tp)
         return;
