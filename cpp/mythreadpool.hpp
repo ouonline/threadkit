@@ -6,10 +6,6 @@
 #include <memory>
 #include <pthread.h>
 
-using std::queue;
-using std::vector;
-using std::shared_ptr;
-
 /* ------------------------------------------------------------------------- */
 
 namespace myutils {
@@ -37,7 +33,7 @@ struct MyThreadTaskQueue {
 
     pthread_mutex_t mutex;
     pthread_cond_t cond;
-    queue<shared_ptr<MyThreadTask>> tasklist;
+    std::queue<std::shared_ptr<MyThreadTask>> tasklist;
 };
 
 /* ------------------------------------------------------------------------- */
@@ -49,17 +45,20 @@ class MyThreadPool {
         MyThreadPool(int num = 0);
         virtual ~MyThreadPool();
 
-        bool addTask(const shared_ptr<MyThreadTask>& t);
+        bool addTask(std::shared_ptr<MyThreadTask> t);
+
+        unsigned int threadNum() const { return m_pidlist.size(); }
+        unsigned int pendingTaskNum() const { return m_queue.tasklist.size(); }
 
     private:
 
-        void doAddTask(const shared_ptr<MyThreadTask>& t);
+        void doAddTask(std::shared_ptr<MyThreadTask> t);
 
     private:
 
         bool m_valid;
         MyThreadTaskQueue m_queue;
-        vector<pthread_t> m_pidlist;
+        std::vector<pthread_t> m_pidlist;
 };
 
 }

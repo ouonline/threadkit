@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include "mythreadpool.hpp"
+using namespace std;
 using namespace myutils;
 
 static void* worker_func(void* arg)
@@ -12,7 +13,7 @@ static void* worker_func(void* arg)
         while (q->tasklist.empty())
             pthread_cond_wait(&q->cond, &q->mutex);
 
-        shared_ptr<MyThreadTask> t = q->tasklist.front();
+        std::shared_ptr<MyThreadTask> t = q->tasklist.front();
         q->tasklist.pop();
 
         pthread_mutex_unlock(&q->mutex);
@@ -26,15 +27,15 @@ static void* worker_func(void* arg)
     return nullptr;
 }
 
-void MyThreadPool::doAddTask(const shared_ptr<MyThreadTask>& t)
+void MyThreadPool::doAddTask(shared_ptr<MyThreadTask> t)
 {
     pthread_mutex_lock(&m_queue.mutex);
     m_queue.tasklist.push(t);
-    pthread_cond_signal(&m_queue.cond);
     pthread_mutex_unlock(&m_queue.mutex);
+    pthread_cond_signal(&m_queue.cond);
 }
 
-bool MyThreadPool::addTask(const shared_ptr<MyThreadTask>& t)
+bool MyThreadPool::addTask(shared_ptr<MyThreadTask> t)
 {
     if (!m_valid)
         return false;
@@ -51,7 +52,7 @@ MyThreadPool::MyThreadPool(int num)
     m_valid = false;
 
     if (num <= 0)
-        num = sysconf(_SC_NPROCESSORS_CONF) * 2;
+        num = sysconf(_SC_NPROCESSORS_CONF) - 1;
 
     for (int i = 0; i < num; ++i) {
         pthread_t pid;
