@@ -13,7 +13,7 @@ static void* worker_func(void* arg)
         while (q->tasklist.empty())
             pthread_cond_wait(&q->cond, &q->mutex);
 
-        std::shared_ptr<MyThreadTask> t = q->tasklist.front();
+        shared_ptr<MyThreadTask> t = q->tasklist.front();
         q->tasklist.pop();
 
         pthread_mutex_unlock(&q->mutex);
