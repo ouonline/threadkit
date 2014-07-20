@@ -1,4 +1,5 @@
 #include <unistd.h>
+
 #include "mythreadpool.hpp"
 using namespace std;
 using namespace myutils;
@@ -72,7 +73,7 @@ MyThreadPool::~MyThreadPool()
     for (size_t i = 0; i < m_pidlist.size(); ++i)
         doAddTask(shared_ptr<MyThreadTask>(nullptr));
 
-    // waiting for remaining tasks to complete
+    // waiting for remaining task(s) to complete
     for (auto i = m_pidlist.begin(); i != m_pidlist.end(); ++i)
         pthread_join(*i, nullptr);
 }
