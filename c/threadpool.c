@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "threadpool.h"
-#include "../../mm/mm.h"
 
 /* ------------------------------------------------------------------------- */
 
@@ -16,7 +15,7 @@ static inline struct thread_task* thread_task_alloc(void* arg,
 {
     struct thread_task* t;
 
-    t = mm_alloc(sizeof(struct thread_task));
+    t = malloc(sizeof(struct thread_task));
     if (t) {
         t->arg = arg;
         t->func = func;
@@ -27,7 +26,7 @@ static inline struct thread_task* thread_task_alloc(void* arg,
 
 static inline void thread_task_free(struct thread_task* t)
 {
-    mm_free(t);
+    free(t);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -132,7 +131,7 @@ struct threadpool* threadpool_init(unsigned int thread_num)
     if (thread_num == 0)
         thread_num = sysconf(_SC_NPROCESSORS_CONF);
 
-    tp = mm_alloc(sizeof(struct threadpool) + sizeof(pthread_t) * thread_num);
+    tp = malloc(sizeof(struct threadpool) + sizeof(pthread_t) * thread_num);
     if (!tp)
         return NULL;
 
@@ -148,7 +147,7 @@ struct threadpool* threadpool_init(unsigned int thread_num)
     }
 
     if (tp->thread_num == 0) {
-        mm_free(tp);
+        free(tp);
         return NULL;
     }
 
@@ -174,5 +173,5 @@ void threadpool_destroy(struct threadpool* tp)
 
     thread_task_queue_destroy(&tp->queue);
 
-    mm_free(tp);
+    free(tp);
 }
