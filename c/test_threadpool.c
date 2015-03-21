@@ -16,7 +16,16 @@ int main(void)
     if (!tp)
         return 0;
 
-    threadpool_add_task(tp, (void*)str, print);
+    printf("thread num = %u\n", threadpool_size(tp));
+    threadpool_add_task(tp, (void*)str, print, NULL);
+
+    threadpool_del_thread(tp, 2);
+    sleep(1);
+    printf("thread num = %u\n", threadpool_size(tp));
+
+    threadpool_add_thread(tp, 5);
+    sleep(1);
+    printf("thread num = %u\n", threadpool_size(tp));
 
     threadpool_destroy(tp);
 
