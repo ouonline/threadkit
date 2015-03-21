@@ -6,7 +6,7 @@ else
     CXXFLAGS := -g
 endif
 
-CXXFLAGS := $(CXXFLAGS) -Wall -Werror -std=c++0x
+CXXFLAGS := $(CXXFLAGS) -Wall -Werror -std=c++11
 
 LIBS := -lpthread
 

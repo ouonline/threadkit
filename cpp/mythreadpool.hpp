@@ -4,6 +4,7 @@
 #include <queue>
 #include <vector>
 #include <memory>
+#include <unordered_set>
 #include <pthread.h>
 
 /* ------------------------------------------------------------------------- */
@@ -42,23 +43,34 @@ class MyThreadPool {
 
     public:
 
-        MyThreadPool(int num = 0);
+        MyThreadPool(unsigned int num = 0);
         virtual ~MyThreadPool();
 
-        bool addTask(std::shared_ptr<MyThreadTask> t);
+        bool addTask(const std::shared_ptr<MyThreadTask>&);
 
-        unsigned int threadNum() const { return m_pidlist.size(); }
-        unsigned int pendingTaskNum() const { return m_queue.tasklist.size(); }
+        unsigned int threadNum() const { return m_thread_list.size(); }
+        unsigned int taskNum() const { return m_queue.tasklist.size(); }
+
+        void addThread(unsigned int num = 1);
+        void delThread(unsigned int num = 1);
 
     private:
 
-        void doAddTask(std::shared_ptr<MyThreadTask> t);
+        void doAddThread();
+        void doDelThread();
+        void doAddTask(const std::shared_ptr<MyThreadTask>&);
 
     private:
 
-        bool m_valid;
+        static void* thread_worker(void*);
+
+    private:
+
         MyThreadTaskQueue m_queue;
-        std::vector<pthread_t> m_pidlist;
+
+        pthread_cond_t m_thread_cond;
+        pthread_mutex_t m_thread_lock;
+        std::unordered_set<pthread_t> m_thread_list;
 };
 
 }

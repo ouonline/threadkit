@@ -2,11 +2,13 @@
 
 #include "mythreadpool.hpp"
 using namespace std;
-using namespace myutils;
 
-static void* worker_func(void* arg)
+namespace myutils {
+
+void* MyThreadPool::thread_worker(void* arg)
 {
-    MyThreadTaskQueue* q = (MyThreadTaskQueue*)arg;
+    auto tp = (MyThreadPool*)arg;
+    auto q = &(tp->m_queue);
 
     while (true) {
         pthread_mutex_lock(&q->mutex);
@@ -14,13 +16,19 @@ static void* worker_func(void* arg)
         while (q->tasklist.empty())
             pthread_cond_wait(&q->cond, &q->mutex);
 
-        shared_ptr<MyThreadTask> t = q->tasklist.front();
+        auto t = q->tasklist.front();
         q->tasklist.pop();
 
         pthread_mutex_unlock(&q->mutex);
 
-        if (!t)
+        if (!t) {
+            pthread_mutex_lock(&tp->m_thread_lock);
+            tp->m_thread_list.erase(pthread_self());
+            pthread_mutex_unlock(&tp->m_thread_lock);
+            pthread_cond_signal(&tp->m_thread_cond);
+
             break;
+        }
 
         t->run();
     }
@@ -28,7 +36,7 @@ static void* worker_func(void* arg)
     return nullptr;
 }
 
-void MyThreadPool::doAddTask(shared_ptr<MyThreadTask> t)
+void MyThreadPool::doAddTask(const shared_ptr<MyThreadTask>& t)
 {
     pthread_mutex_lock(&m_queue.mutex);
     m_queue.tasklist.push(t);
@@ -36,9 +44,9 @@ void MyThreadPool::doAddTask(shared_ptr<MyThreadTask> t)
     pthread_cond_signal(&m_queue.cond);
 }
 
-bool MyThreadPool::addTask(shared_ptr<MyThreadTask> t)
+bool MyThreadPool::addTask(const shared_ptr<MyThreadTask>& t)
 {
-    if (!m_valid)
+    if (m_thread_list.empty())
         return false;
 
     if (!t)
@@ -48,32 +56,63 @@ bool MyThreadPool::addTask(shared_ptr<MyThreadTask> t)
     return true;
 }
 
-MyThreadPool::MyThreadPool(int num)
+void MyThreadPool::doAddThread()
 {
-    m_valid = false;
+    pthread_t pid;
+    if (pthread_create(&pid, nullptr, thread_worker, this) == 0) {
+        pthread_mutex_lock(&m_thread_lock);
+        m_thread_list.insert(pid);
+        pthread_mutex_unlock(&m_thread_lock);
+    }
+}
 
-    if (num <= 0)
+void MyThreadPool::addThread(unsigned int num)
+{
+    for (unsigned int i = 0; i < num; ++i)
+        doAddThread();
+}
+
+void MyThreadPool::doDelThread()
+{
+    doAddTask(shared_ptr<MyThreadTask>(nullptr));
+}
+
+void MyThreadPool::delThread(unsigned int num)
+{
+    if (num > m_thread_list.size())
+        num = m_thread_list.size();
+
+    for (unsigned int i = 0; i < num; ++i)
+        doDelThread();
+}
+
+MyThreadPool::MyThreadPool(unsigned int num)
+{
+    if (num == 0)
         num = sysconf(_SC_NPROCESSORS_CONF) - 1;
 
-    for (int i = 0; i < num; ++i) {
-        pthread_t pid;
-        int err = pthread_create(&pid, nullptr, worker_func, &m_queue);
-        if (!err)
-            m_pidlist.push_back(pid);
-    }
+    pthread_mutex_init(&m_thread_lock, nullptr);
+    pthread_cond_init(&m_thread_cond, nullptr);
 
-    if (m_pidlist.size() > 0)
-        m_valid = true;
+    for (unsigned int i = 0; i < num; ++i)
+        doAddThread();
 }
 
 MyThreadPool::~MyThreadPool()
 {
-    m_valid = false; // cannot addTask() any more
+    unsigned int num = m_thread_list.size();
 
-    for (size_t i = 0; i < m_pidlist.size(); ++i)
-        doAddTask(shared_ptr<MyThreadTask>(nullptr));
+    for (unsigned int i = 0; i < num; ++i)
+        doDelThread();
 
     // waiting for remaining task(s) to complete
-    for (auto i = m_pidlist.begin(); i != m_pidlist.end(); ++i)
-        pthread_join(*i, nullptr);
+    pthread_mutex_lock(&m_thread_lock);
+    while (!m_thread_list.empty())
+        pthread_cond_wait(&m_thread_cond, &m_thread_lock);
+    pthread_mutex_unlock(&m_thread_lock);
+
+    pthread_cond_destroy(&m_thread_cond);
+    pthread_mutex_destroy(&m_thread_lock);
+}
+
 }
