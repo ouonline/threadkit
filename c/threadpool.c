@@ -151,6 +151,8 @@ static inline struct thread_node* thread_node_alloc(struct threadpool* tp)
             free(node);
             return NULL;
         }
+
+        pthread_detach(node->pid);
     }
 
     return node;

@@ -61,6 +61,7 @@ void MyThreadPool::doAddThread()
     pthread_t pid;
     if (pthread_create(&pid, nullptr, thread_worker, this) == 0) {
         pthread_mutex_lock(&m_thread_lock);
+        pthread_detach(pid);
         m_thread_list.insert(pid);
         pthread_mutex_unlock(&m_thread_lock);
     }
