@@ -16,6 +16,7 @@ class MyThreadTask {
     public:
 
         virtual void run() = 0;
+        virtual ~MyThreadTask() {}
 };
 
 struct MyThreadTaskQueue {
