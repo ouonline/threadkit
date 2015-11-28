@@ -1,13 +1,13 @@
 #include <unistd.h>
 
-#include "mythreadpool.hpp"
+#include "threadpool.hpp"
 using namespace std;
 
-namespace myutils {
+namespace utils {
 
-void* MyThreadPool::thread_worker(void* arg)
+void* ThreadPool::thread_worker(void* arg)
 {
-    auto tp = (MyThreadPool*)arg;
+    auto tp = (ThreadPool*)arg;
     auto q = &(tp->m_queue);
 
     while (true) {
@@ -33,10 +33,10 @@ void* MyThreadPool::thread_worker(void* arg)
         t->run();
     }
 
-    return nullptr;
+    return NULL;
 }
 
-void MyThreadPool::doAddTask(const shared_ptr<MyThreadTask>& t)
+void ThreadPool::doAddTask(const shared_ptr<ThreadTask>& t)
 {
     pthread_mutex_lock(&m_queue.mutex);
     m_queue.tasklist.push(t);
@@ -44,7 +44,7 @@ void MyThreadPool::doAddTask(const shared_ptr<MyThreadTask>& t)
     pthread_cond_signal(&m_queue.cond);
 }
 
-bool MyThreadPool::addTask(const shared_ptr<MyThreadTask>& t)
+bool ThreadPool::addTask(const shared_ptr<ThreadTask>& t)
 {
     if (m_thread_list.empty())
         return false;
@@ -56,10 +56,10 @@ bool MyThreadPool::addTask(const shared_ptr<MyThreadTask>& t)
     return true;
 }
 
-void MyThreadPool::doAddThread()
+void ThreadPool::doAddThread()
 {
     pthread_t pid;
-    if (pthread_create(&pid, nullptr, thread_worker, this) == 0) {
+    if (pthread_create(&pid, NULL, thread_worker, this) == 0) {
         pthread_mutex_lock(&m_thread_lock);
         pthread_detach(pid);
         m_thread_list.insert(pid);
@@ -67,18 +67,18 @@ void MyThreadPool::doAddThread()
     }
 }
 
-void MyThreadPool::addThread(unsigned int num)
+void ThreadPool::addThread(unsigned int num)
 {
     for (unsigned int i = 0; i < num; ++i)
         doAddThread();
 }
 
-void MyThreadPool::doDelThread()
+void ThreadPool::doDelThread()
 {
-    doAddTask(shared_ptr<MyThreadTask>(nullptr));
+    doAddTask(shared_ptr<ThreadTask>());
 }
 
-void MyThreadPool::delThread(unsigned int num)
+void ThreadPool::delThread(unsigned int num)
 {
     if (num > m_thread_list.size())
         num = m_thread_list.size();
@@ -87,19 +87,19 @@ void MyThreadPool::delThread(unsigned int num)
         doDelThread();
 }
 
-MyThreadPool::MyThreadPool(unsigned int num)
+ThreadPool::ThreadPool(unsigned int num)
 {
     if (num == 0)
         num = sysconf(_SC_NPROCESSORS_CONF) - 1;
 
-    pthread_mutex_init(&m_thread_lock, nullptr);
-    pthread_cond_init(&m_thread_cond, nullptr);
+    pthread_mutex_init(&m_thread_lock, NULL);
+    pthread_cond_init(&m_thread_cond, NULL);
 
     for (unsigned int i = 0; i < num; ++i)
         doAddThread();
 }
 
-MyThreadPool::~MyThreadPool()
+ThreadPool::~ThreadPool()
 {
     unsigned int num = m_thread_list.size();
 

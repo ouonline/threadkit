@@ -3,10 +3,10 @@ using namespace std;
 
 #include <unistd.h>
 
-#include "mythreadpool.hpp"
-using namespace myutils;
+#include "threadpool.hpp"
+using namespace utils;
 
-class TestThreadTask : public MyThreadTask {
+class TestThreadTask : public ThreadTask {
 
     public:
 
@@ -27,7 +27,7 @@ class TestThreadTask : public MyThreadTask {
 
 int main(void)
 {
-    MyThreadPool tp(5);
+    ThreadPool tp(5);
 
     tp.addTask(make_shared<TestThreadTask>("Hello, world!"));
 

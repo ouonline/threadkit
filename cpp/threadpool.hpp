@@ -1,5 +1,5 @@
-#ifndef __MYTHREADPOOL_HPP__
-#define __MYTHREADPOOL_HPP__
+#ifndef __THREADPOOL_HPP__
+#define __THREADPOOL_HPP__
 
 #include <queue>
 #include <vector>
@@ -9,25 +9,25 @@
 
 /* ------------------------------------------------------------------------- */
 
-namespace myutils {
+namespace utils {
 
-class MyThreadTask {
+class ThreadTask {
 
     public:
 
         virtual void run() = 0;
-        virtual ~MyThreadTask() {}
+        virtual ~ThreadTask() {}
 };
 
-struct MyThreadTaskQueue {
+struct ThreadTaskQueue {
 
-    MyThreadTaskQueue()
+    ThreadTaskQueue()
     {
-        pthread_mutex_init(&mutex, nullptr);
-        pthread_cond_init(&cond, nullptr);
+        pthread_mutex_init(&mutex, NULL);
+        pthread_cond_init(&cond, NULL);
     }
 
-    ~MyThreadTaskQueue()
+    ~ThreadTaskQueue()
     {
         pthread_cond_destroy(&cond);
         pthread_mutex_destroy(&mutex);
@@ -35,19 +35,19 @@ struct MyThreadTaskQueue {
 
     pthread_mutex_t mutex;
     pthread_cond_t cond;
-    std::queue<std::shared_ptr<MyThreadTask>> tasklist;
+    std::queue<std::shared_ptr<ThreadTask>> tasklist;
 };
 
 /* ------------------------------------------------------------------------- */
 
-class MyThreadPool {
+class ThreadPool {
 
     public:
 
-        MyThreadPool(unsigned int num = 0);
-        virtual ~MyThreadPool();
+        ThreadPool(unsigned int num = 0);
+        virtual ~ThreadPool();
 
-        bool addTask(const std::shared_ptr<MyThreadTask>&);
+        bool addTask(const std::shared_ptr<ThreadTask>&);
 
         unsigned int threadNum() const { return m_thread_list.size(); }
         unsigned int taskNum() const { return m_queue.tasklist.size(); }
@@ -59,7 +59,7 @@ class MyThreadPool {
 
         void doAddThread();
         void doDelThread();
-        void doAddTask(const std::shared_ptr<MyThreadTask>&);
+        void doAddTask(const std::shared_ptr<ThreadTask>&);
 
     private:
 
@@ -67,7 +67,7 @@ class MyThreadPool {
 
     private:
 
-        MyThreadTaskQueue m_queue;
+        ThreadTaskQueue m_queue;
 
         pthread_cond_t m_thread_cond;
         pthread_mutex_t m_thread_lock;
