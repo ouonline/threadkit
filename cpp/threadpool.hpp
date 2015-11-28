@@ -15,7 +15,7 @@ class ThreadTask {
 
     public:
 
-        virtual void run() = 0;
+        virtual void Run() = 0;
         virtual ~ThreadTask() {}
 };
 
@@ -47,23 +47,23 @@ class ThreadPool {
         ThreadPool(unsigned int num = 0);
         virtual ~ThreadPool();
 
-        bool addTask(const std::shared_ptr<ThreadTask>&);
+        bool AddTask(const std::shared_ptr<ThreadTask>&);
 
-        unsigned int threadNum() const { return m_thread_list.size(); }
-        unsigned int taskNum() const { return m_queue.tasklist.size(); }
+        unsigned int ThreadNum() const { return m_thread_list.size(); }
+        unsigned int TaskNum() const { return m_queue.tasklist.size(); }
 
-        void addThread(unsigned int num = 1);
-        void delThread(unsigned int num = 1);
-
-    private:
-
-        void doAddThread();
-        void doDelThread();
-        void doAddTask(const std::shared_ptr<ThreadTask>&);
+        void AddThread(unsigned int num = 1);
+        void DelThread(unsigned int num = 1);
 
     private:
 
-        static void* thread_worker(void*);
+        void DoAddThread();
+        void DoDelThread();
+        void DoAddTask(const std::shared_ptr<ThreadTask>&);
+
+    private:
+
+        static void* ThreadWorker(void*);
 
     private:
 

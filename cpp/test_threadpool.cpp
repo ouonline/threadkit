@@ -15,7 +15,7 @@ class TestThreadTask : public ThreadTask {
             m_msg = msg;
         }
 
-        void run()
+        void Run()
         {
             cout << m_msg << endl;
         }
@@ -29,15 +29,15 @@ int main(void)
 {
     ThreadPool tp(5);
 
-    tp.addTask(make_shared<TestThreadTask>("Hello, world!"));
+    tp.AddTask(make_shared<TestThreadTask>("Hello, world!"));
 
-    tp.delThread(2);
+    tp.DelThread(2);
     sleep(1);
-    cout << "thread num = " << tp.threadNum() << endl;
+    cout << "thread num = " << tp.ThreadNum() << endl;
 
-    tp.addThread(5);
+    tp.AddThread(5);
     sleep(1);
-    cout << "thread num = " << tp.threadNum() << endl;
+    cout << "thread num = " << tp.ThreadNum() << endl;
 
     return 0;
 }

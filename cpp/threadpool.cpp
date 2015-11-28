@@ -5,7 +5,7 @@ using namespace std;
 
 namespace utils {
 
-void* ThreadPool::thread_worker(void* arg)
+void* ThreadPool::ThreadWorker(void* arg)
 {
     auto tp = (ThreadPool*)arg;
     auto q = &(tp->m_queue);
@@ -30,13 +30,13 @@ void* ThreadPool::thread_worker(void* arg)
             break;
         }
 
-        t->run();
+        t->Run();
     }
 
     return NULL;
 }
 
-void ThreadPool::doAddTask(const shared_ptr<ThreadTask>& t)
+void ThreadPool::DoAddTask(const shared_ptr<ThreadTask>& t)
 {
     pthread_mutex_lock(&m_queue.mutex);
     m_queue.tasklist.push(t);
@@ -44,7 +44,7 @@ void ThreadPool::doAddTask(const shared_ptr<ThreadTask>& t)
     pthread_cond_signal(&m_queue.cond);
 }
 
-bool ThreadPool::addTask(const shared_ptr<ThreadTask>& t)
+bool ThreadPool::AddTask(const shared_ptr<ThreadTask>& t)
 {
     if (m_thread_list.empty())
         return false;
@@ -52,14 +52,14 @@ bool ThreadPool::addTask(const shared_ptr<ThreadTask>& t)
     if (!t)
         return false;
 
-    doAddTask(t);
+    DoAddTask(t);
     return true;
 }
 
-void ThreadPool::doAddThread()
+void ThreadPool::DoAddThread()
 {
     pthread_t pid;
-    if (pthread_create(&pid, NULL, thread_worker, this) == 0) {
+    if (pthread_create(&pid, NULL, ThreadWorker, this) == 0) {
         pthread_mutex_lock(&m_thread_lock);
         pthread_detach(pid);
         m_thread_list.insert(pid);
@@ -67,24 +67,24 @@ void ThreadPool::doAddThread()
     }
 }
 
-void ThreadPool::addThread(unsigned int num)
+void ThreadPool::AddThread(unsigned int num)
 {
     for (unsigned int i = 0; i < num; ++i)
-        doAddThread();
+        DoAddThread();
 }
 
-void ThreadPool::doDelThread()
+void ThreadPool::DoDelThread()
 {
-    doAddTask(shared_ptr<ThreadTask>());
+    DoAddTask(shared_ptr<ThreadTask>());
 }
 
-void ThreadPool::delThread(unsigned int num)
+void ThreadPool::DelThread(unsigned int num)
 {
     if (num > m_thread_list.size())
         num = m_thread_list.size();
 
     for (unsigned int i = 0; i < num; ++i)
-        doDelThread();
+        DoDelThread();
 }
 
 ThreadPool::ThreadPool(unsigned int num)
@@ -96,7 +96,7 @@ ThreadPool::ThreadPool(unsigned int num)
     pthread_cond_init(&m_thread_cond, NULL);
 
     for (unsigned int i = 0; i < num; ++i)
-        doAddThread();
+        DoAddThread();
 }
 
 ThreadPool::~ThreadPool()
@@ -104,7 +104,7 @@ ThreadPool::~ThreadPool()
     unsigned int num = m_thread_list.size();
 
     for (unsigned int i = 0; i < num; ++i)
-        doDelThread();
+        DoDelThread();
 
     // waiting for remaining task(s) to complete
     pthread_mutex_lock(&m_thread_lock);
