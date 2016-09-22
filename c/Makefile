@@ -8,6 +8,7 @@ endif
 
 CFLAGS := $(CFLAGS) -Wall -Werror
 
+INCLUDE := -I../../utils
 LIBS := -lpthread
 
 OBJS := $(patsubst %.c, %.o, $(wildcard *.c))
@@ -22,7 +23,7 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 .c.o:
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 clean:
 	rm -f $(TARGET) $(OBJS)
