@@ -10,24 +10,25 @@ static void print(void* arg)
 int main(void)
 {
     const char* str = "Hello, world!";
-    struct threadpool* tp;
+    struct threadpool tp;
 
-    tp = threadpool_init(5);
-    if (!tp)
-        return 0;
+    if (threadpool_init(&tp, 5) != 0) {
+        printf("thread pool init failed.\n");
+        return -1;
+    }
 
-    printf("thread num = %u\n", threadpool_size(tp));
-    threadpool_add_task(tp, (void*)str, print, NULL);
+    printf("thread num = %u\n", threadpool_size(&tp));
+    threadpool_add_task(&tp, (void*)str, print, NULL);
 
-    threadpool_del_thread(tp, 2);
+    threadpool_del_thread(&tp, 2);
     sleep(1);
-    printf("thread num = %u\n", threadpool_size(tp));
+    printf("thread num = %u\n", threadpool_size(&tp));
 
-    threadpool_add_thread(tp, 5);
+    threadpool_add_thread(&tp, 5);
     sleep(1);
-    printf("thread num = %u\n", threadpool_size(tp));
+    printf("thread num = %u\n", threadpool_size(&tp));
 
-    threadpool_destroy(tp);
+    threadpool_destroy(&tp);
 
     return 0;
 }

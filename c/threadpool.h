@@ -12,17 +12,15 @@ struct thread_task_queue {
 };
 
 struct threadpool {
-    unsigned int thread_num;
     struct thread_task_queue queue;
-
-    pthread_cond_t thread_list_cond;
-    pthread_mutex_t thread_list_lock;
-    struct list_node thread_list;
+    unsigned int thread_num;
+    pthread_cond_t thread_num_cond;
+    pthread_mutex_t thread_num_lock;
 };
 
 /* ------------------------------------------------------------------------- */
 
-struct threadpool* threadpool_init(unsigned int thread_num);
+int threadpool_init(struct threadpool*, unsigned int thread_num);
 void threadpool_destroy(struct threadpool*);
 
 static inline unsigned int threadpool_size(struct threadpool* tp)
@@ -35,7 +33,7 @@ unsigned int threadpool_task_num(struct threadpool* tp);
 int threadpool_add_task(struct threadpool*, void* arg, void (*func)(void*),
                         void (*destructor)(void*));
 
-void threadpool_add_thread(struct threadpool*, unsigned int num);
+int threadpool_add_thread(struct threadpool*, unsigned int num);
 void threadpool_del_thread(struct threadpool*, unsigned int num);
 
 #endif
