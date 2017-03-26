@@ -12,7 +12,7 @@ LIBS := -lpthread
 
 OBJS := $(patsubst %.cpp, %.o, $(wildcard *.cpp))
 
-TARGET := test_threadpool
+TARGET := test
 
 .PHONY: all clean
 
