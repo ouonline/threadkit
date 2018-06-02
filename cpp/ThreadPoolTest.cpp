@@ -8,25 +8,20 @@ using namespace utils;
 
 class TestThreadTask : public ThreadTask {
 
-    public:
+public:
+    TestThreadTask(const string& msg) {
+        m_msg = msg;
+    }
 
-        TestThreadTask(const string& msg)
-        {
-            m_msg = msg;
-        }
+    void Run() {
+        cout << m_msg << endl;
+    }
 
-        void Run()
-        {
-            cout << m_msg << endl;
-        }
-
-    private:
-
-        string m_msg;
+private:
+    string m_msg;
 };
 
-int main(void)
-{
+int main(void) {
     ThreadPool tp(5);
 
     tp.AddTask(make_shared<TestThreadTask>("Hello, world!"));

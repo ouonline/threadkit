@@ -23,8 +23,7 @@ struct threadpool {
 int threadpool_init(struct threadpool*, unsigned int thread_num);
 void threadpool_destroy(struct threadpool*);
 
-static inline unsigned int threadpool_size(struct threadpool* tp)
-{
+static inline unsigned int threadpool_size(struct threadpool* tp) {
     return tp->thread_num;
 }
 

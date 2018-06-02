@@ -2,13 +2,11 @@
 #include <unistd.h>
 #include "threadpool.h"
 
-static void print(void* arg)
-{
+static void print(void* arg) {
     printf("%s\n", (const char*)arg);
 }
 
-int main(void)
-{
+int main(void) {
     const char* str = "Hello, world!";
     struct threadpool tp;
 
