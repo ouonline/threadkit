@@ -5,6 +5,35 @@ using namespace std;
 
 namespace utils {
 
+ThreadTask::ThreadTask() {
+    m_finished = false;
+    pthread_mutex_init(&m_mutex, NULL);
+    pthread_cond_init(&m_cond, NULL);
+}
+
+ThreadTask::~ThreadTask() {
+    pthread_cond_destroy(&m_cond);
+    pthread_mutex_destroy(&m_mutex);
+}
+
+void ThreadTask::Exec() {
+    pthread_mutex_lock(&m_mutex);
+    Run();
+    m_finished = true;
+    pthread_mutex_unlock(&m_mutex);
+    pthread_cond_signal(&m_cond);
+}
+
+void ThreadTask::Join() {
+    pthread_mutex_lock(&m_mutex);
+    while (!m_finished) {
+        pthread_cond_wait(&m_cond, &m_mutex);
+    }
+    pthread_mutex_unlock(&m_mutex);
+}
+
+/* -------------------------------------------------------------------------- */
+
 void* ThreadPool::ThreadWorker(void* arg) {
     auto tp = (ThreadPool*)arg;
     auto q = &(tp->m_queue);
@@ -29,7 +58,7 @@ void* ThreadPool::ThreadWorker(void* arg) {
             break;
         }
 
-        t->Run();
+        t->Exec();
     }
 
     return NULL;

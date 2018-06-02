@@ -13,8 +13,18 @@ namespace utils {
 class ThreadTask {
 
 public:
-    virtual ~ThreadTask() {}
+    ThreadTask();
+    virtual ~ThreadTask();
+    void Exec();
+    void Join();
+
+protected:
     virtual void Run() = 0;
+
+private:
+    bool m_finished;
+    pthread_mutex_t m_mutex;
+    pthread_cond_t m_cond;
 };
 
 struct ThreadTaskQueue {

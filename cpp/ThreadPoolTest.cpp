@@ -24,7 +24,8 @@ private:
 int main(void) {
     ThreadPool tp(5);
 
-    tp.AddTask(make_shared<TestThreadTask>("Hello, world!"));
+    auto task = make_shared<TestThreadTask>("Hello, world!");
+    tp.AddTask(task);
 
     tp.DelThread(2);
     sleep(1);
@@ -33,6 +34,8 @@ int main(void) {
     tp.AddThread(5);
     sleep(1);
     cout << "thread num = " << tp.ThreadNum() << endl;
+
+    task->Join();
 
     return 0;
 }
