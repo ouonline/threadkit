@@ -49,16 +49,16 @@ struct ThreadTaskQueue {
 class ThreadPool {
 
 public:
-    ThreadPool(unsigned int num = 0);
+    ThreadPool();
     virtual ~ThreadPool();
 
     bool AddTask(const std::shared_ptr<ThreadTask>&);
 
     unsigned int ThreadNum() const { return m_thread_num; }
-    unsigned int TaskNum() const { return m_queue.tasklist.size(); }
+    unsigned int PendingTaskNum() const { return m_queue.tasklist.size(); }
 
-    void AddThread(unsigned int num = 1);
-    void DelThread(unsigned int num = 1);
+    void AddThread(unsigned int num);
+    void DelThread(unsigned int num);
 
 private:
     void DoAddThread();

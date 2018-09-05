@@ -22,7 +22,8 @@ private:
 };
 
 int main(void) {
-    ThreadPool tp(5);
+    ThreadPool tp;
+    tp.AddThread(5);
 
     auto task = make_shared<TestThreadTask>("Hello, world!");
     tp.AddTask(task);

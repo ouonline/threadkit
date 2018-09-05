@@ -1,5 +1,3 @@
-#include <unistd.h>
-
 #include "thread_pool.hpp"
 using namespace std;
 
@@ -114,19 +112,11 @@ void ThreadPool::DelThread(unsigned int num) {
     }
 }
 
-ThreadPool::ThreadPool(unsigned int num) {
+ThreadPool::ThreadPool() {
     m_thread_num = 0;
-
-    if (num == 0) {
-        num = sysconf(_SC_NPROCESSORS_CONF) - 1;
-    }
 
     pthread_mutex_init(&m_thread_lock, NULL);
     pthread_cond_init(&m_thread_cond, NULL);
-
-    for (unsigned int i = 0; i < num; ++i) {
-        DoAddThread();
-    }
 }
 
 ThreadPool::~ThreadPool() {
