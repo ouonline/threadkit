@@ -10,14 +10,21 @@ class TestThreadTask : public ThreadTask {
 
 public:
     TestThreadTask(const string& msg) {
+        m_is_finished = false;
         m_msg = msg;
     }
 
-    void Run() {
+    void Run() override {
         cout << m_msg << endl;
+        m_is_finished = true;
+    }
+
+    bool IsFinished() const override {
+        return m_is_finished;
     }
 
 private:
+    bool m_is_finished;
     string m_msg;
 };
 
@@ -25,8 +32,8 @@ int main(void) {
     ThreadPool tp;
     tp.AddThread(5);
 
-    auto task = make_shared<TestThreadTask>("Hello, world!");
-    tp.AddTask(task);
+    TestThreadTask task("Hello, world!");
+    tp.AddTask(&task);
 
     tp.DelThread(2);
     sleep(1);
@@ -36,7 +43,7 @@ int main(void) {
     sleep(1);
     cout << "thread num = " << tp.ThreadNum() << endl;
 
-    task->Join();
+    task.Join();
 
     return 0;
 }

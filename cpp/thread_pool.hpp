@@ -2,8 +2,6 @@
 #define __THREADPOOL_HPP__
 
 #include <queue>
-#include <vector>
-#include <memory>
 #include <pthread.h>
 
 /* ------------------------------------------------------------------------- */
@@ -20,9 +18,9 @@ public:
 
 protected:
     virtual void Run() = 0;
+    virtual bool IsFinished() const = 0;
 
 private:
-    bool m_finished;
     pthread_mutex_t m_mutex;
     pthread_cond_t m_cond;
 };
@@ -30,8 +28,8 @@ private:
 struct ThreadTaskQueue {
 
     ThreadTaskQueue() {
-        pthread_mutex_init(&mutex, NULL);
-        pthread_cond_init(&cond, NULL);
+        pthread_mutex_init(&mutex, nullptr);
+        pthread_cond_init(&cond, nullptr);
     }
 
     ~ThreadTaskQueue() {
@@ -41,7 +39,7 @@ struct ThreadTaskQueue {
 
     pthread_mutex_t mutex;
     pthread_cond_t cond;
-    std::queue<std::shared_ptr<ThreadTask>> tasklist;
+    std::queue<ThreadTask*> tasklist;
 };
 
 /* ------------------------------------------------------------------------- */
@@ -52,7 +50,7 @@ public:
     ThreadPool();
     virtual ~ThreadPool();
 
-    bool AddTask(const std::shared_ptr<ThreadTask>&);
+    bool AddTask(ThreadTask*);
 
     unsigned int ThreadNum() const { return m_thread_num; }
     unsigned int PendingTaskNum() const { return m_queue.tasklist.size(); }
@@ -63,7 +61,7 @@ public:
 private:
     void DoAddThread();
     void DoDelThread();
-    void DoAddTask(const std::shared_ptr<ThreadTask>&);
+    void DoAddTask(ThreadTask*);
 
 private:
     static void* ThreadWorker(void*);
