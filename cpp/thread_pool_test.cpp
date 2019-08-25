@@ -14,7 +14,7 @@ public:
         m_msg = msg;
     }
 
-    void Run() override {
+    void Process() override {
         cout << m_msg << endl;
         m_is_finished = true;
     }
@@ -32,8 +32,8 @@ int main(void) {
     ThreadPool tp;
     tp.AddThread(5);
 
-    TestThreadTask task("Hello, world!");
-    tp.AddTask(&task);
+    auto task = make_shared<TestThreadTask>("Hello, world!");
+    tp.AddTask(task);
 
     tp.DelThread(2);
     sleep(1);
@@ -43,7 +43,7 @@ int main(void) {
     sleep(1);
     cout << "thread num = " << tp.ThreadNum() << endl;
 
-    task.Join();
+    task->Join();
 
     return 0;
 }

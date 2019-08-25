@@ -16,7 +16,7 @@ ThreadTask::~ThreadTask() {
 void ThreadTask::Exec() {
     if (!IsFinished()) {
         pthread_mutex_lock(&m_mutex);
-        Run();
+        Process();
         pthread_mutex_unlock(&m_mutex);
         pthread_cond_signal(&m_cond);
     }
@@ -62,14 +62,14 @@ void* ThreadPool::ThreadWorker(void* arg) {
     return nullptr;
 }
 
-void ThreadPool::DoAddTask(ThreadTask* t) {
+void ThreadPool::DoAddTask(const shared_ptr<ThreadTask>& t) {
     pthread_mutex_lock(&m_queue.mutex);
     m_queue.tasklist.push(t);
     pthread_mutex_unlock(&m_queue.mutex);
     pthread_cond_signal(&m_queue.cond);
 }
 
-bool ThreadPool::AddTask(ThreadTask* t) {
+bool ThreadPool::AddTask(const shared_ptr<ThreadTask>& t) {
     if (m_thread_num == 0) {
         return false;
     }
@@ -99,7 +99,7 @@ void ThreadPool::AddThread(unsigned int num) {
 }
 
 void ThreadPool::DoDelThread() {
-    DoAddTask(nullptr);
+    DoAddTask(std::shared_ptr<ThreadTask>());
 }
 
 void ThreadPool::DelThread(unsigned int num) {
