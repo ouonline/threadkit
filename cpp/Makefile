@@ -1,4 +1,5 @@
 CXX := g++
+AR := ar
 
 ifeq ($(debug), y)
     CXXFLAGS := -g
@@ -6,20 +7,23 @@ else
     CXXFLAGS := -O2 -DNDEBUG
 endif
 
-CXXFLAGS := $(CXXFLAGS) -Wall -Werror -std=c++0x
+CXXFLAGS := $(CXXFLAGS) -Wall -Werror -std=c++0x -fPIC
 
 LIBS := -lpthread
 
 OBJS := $(patsubst %.cpp, %.o, $(wildcard *.cpp))
 
-TARGET := test
+TARGET := libthreadpool.a libthreadpool.so
 
 .PHONY: all clean
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
+libthreadpool.so: $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ -shared $(LIBS)
+
+libthreadpool.a: $(OBJS)
+	$(AR) -rc $@ $^
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -c $< -o $@
