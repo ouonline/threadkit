@@ -7,7 +7,7 @@ else
     CXXFLAGS := -O2 -DNDEBUG
 endif
 
-CXXFLAGS := $(CXXFLAGS) -Wall -Werror -std=c++0x -fPIC
+CXXFLAGS := $(CXXFLAGS) -Wall -Werror -Wextra -fPIC
 
 LIBS := -lpthread
 

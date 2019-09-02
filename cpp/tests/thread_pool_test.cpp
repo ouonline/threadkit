@@ -6,7 +6,7 @@ using namespace std;
 #include "thread_pool.hpp"
 using namespace utils;
 
-class TestThreadTask : public ThreadTask {
+class TestThreadTask : public JoinableThreadTask {
 
 public:
     TestThreadTask(const string& msg) {
@@ -14,6 +14,7 @@ public:
         m_msg = msg;
     }
 
+protected:
     void Process() override {
         cout << m_msg << endl;
         m_is_finished = true;

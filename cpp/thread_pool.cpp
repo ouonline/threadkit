@@ -3,17 +3,17 @@ using namespace std;
 
 namespace utils {
 
-ThreadTask::ThreadTask() {
+JoinableThreadTask::JoinableThreadTask() {
     pthread_mutex_init(&m_mutex, nullptr);
     pthread_cond_init(&m_cond, nullptr);
 }
 
-ThreadTask::~ThreadTask() {
+JoinableThreadTask::~JoinableThreadTask() {
     pthread_cond_destroy(&m_cond);
     pthread_mutex_destroy(&m_mutex);
 }
 
-void ThreadTask::Exec() {
+void JoinableThreadTask::Run() {
     if (!IsFinished()) {
         pthread_mutex_lock(&m_mutex);
         Process();
@@ -22,7 +22,7 @@ void ThreadTask::Exec() {
     }
 }
 
-void ThreadTask::Join() {
+void JoinableThreadTask::Join() {
     pthread_mutex_lock(&m_mutex);
     while (!IsFinished()) {
         pthread_cond_wait(&m_cond, &m_mutex);
@@ -56,7 +56,7 @@ void* ThreadPool::ThreadWorker(void* arg) {
             break;
         }
 
-        t->Exec();
+        t->Run();
     }
 
     return nullptr;

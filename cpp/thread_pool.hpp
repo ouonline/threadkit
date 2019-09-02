@@ -12,9 +12,16 @@ namespace utils {
 class ThreadTask {
 
 public:
-    ThreadTask();
-    virtual ~ThreadTask();
-    void Exec();
+    virtual ~ThreadTask() {}
+    virtual void Run() = 0;
+};
+
+class JoinableThreadTask : public ThreadTask {
+
+public:
+    JoinableThreadTask();
+    virtual ~JoinableThreadTask();
+    void Run() override final;
     void Join();
 
 protected:
@@ -27,7 +34,6 @@ private:
 };
 
 struct ThreadTaskQueue {
-
     ThreadTaskQueue() {
         pthread_mutex_init(&mutex, nullptr);
         pthread_cond_init(&cond, nullptr);

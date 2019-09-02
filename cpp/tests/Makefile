@@ -16,15 +16,21 @@ OBJS := $(patsubst %.cpp, %.o, $(wildcard *.cpp))
 
 TARGET := test
 
-.PHONY: all clean
+.PHONY: all clean pre-process post-clean
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
+pre-process:
+	$(MAKE) -C ..
+
+post-clean:
+	$(MAKE) clean -C ..
+
+$(TARGET): $(OBJS) | pre-process
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
 
-clean:
+clean: | post-clean
 	rm -f $(TARGET) $(OBJS)
