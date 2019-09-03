@@ -7,8 +7,6 @@ else
 endif
 CXXFLAGS := $(CXXFLAGS) -Wall -Werror -Wextra
 
-PROJECTDIR := $(shell pwd)
-
 INCLUDE := -I..
 LIBS := ../libthreadpool.a -lpthread
 
