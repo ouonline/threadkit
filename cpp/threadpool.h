@@ -1,5 +1,5 @@
-#ifndef __UTILS_THREADPOOL_HPP__
-#define __UTILS_THREADPOOL_HPP__
+#ifndef __UTILS_THREADPOOL_H__
+#define __UTILS_THREADPOOL_H__
 
 #include <queue>
 #include <memory>

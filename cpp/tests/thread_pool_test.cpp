@@ -3,7 +3,7 @@ using namespace std;
 
 #include <unistd.h>
 
-#include "thread_pool.hpp"
+#include "threadpool.h"
 using namespace utils;
 
 class TestThreadTask : public JoinableThreadTask {
