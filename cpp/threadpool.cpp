@@ -13,13 +13,15 @@ JoinableThreadTask::~JoinableThreadTask() {
     pthread_mutex_destroy(&m_mutex);
 }
 
-void JoinableThreadTask::Run() {
+ThreadTaskInfo JoinableThreadTask::Run() {
+    ThreadTaskInfo info;
     if (!IsFinished()) {
         pthread_mutex_lock(&m_mutex);
-        Process();
+        info = Process();
         pthread_mutex_unlock(&m_mutex);
         pthread_cond_signal(&m_cond);
     }
+    return info;
 }
 
 void JoinableThreadTask::Join() {
@@ -37,18 +39,8 @@ void* ThreadPool::ThreadWorker(void* arg) {
     auto q = &(tp->m_queue);
 
     while (true) {
-        pthread_mutex_lock(&q->mutex);
-
-        while (q->tasklist.empty()) {
-            pthread_cond_wait(&q->cond, &q->mutex);
-        }
-
-        auto t = q->tasklist.front();
-        q->tasklist.pop();
-
-        pthread_mutex_unlock(&q->mutex);
-
-        if (!t) {
+        auto info = q->Pop();
+        if (!info.task) {
             pthread_mutex_lock(&tp->m_thread_lock);
             --tp->m_thread_num;
             pthread_mutex_unlock(&tp->m_thread_lock);
@@ -56,60 +48,64 @@ void* ThreadPool::ThreadWorker(void* arg) {
             break;
         }
 
-        t->Run();
+        do {
+            auto task = info.task;
+            auto destructor = info.destructor;
+            info = task->Run();
+            if (destructor) {
+                destructor->Process(task);
+            }
+        } while (info.task != nullptr);
     }
 
     return nullptr;
 }
 
-void ThreadPool::DoAddTask(const shared_ptr<ThreadTask>& t) {
-    pthread_mutex_lock(&m_queue.mutex);
-    m_queue.tasklist.push(t);
-    pthread_mutex_unlock(&m_queue.mutex);
-    pthread_cond_signal(&m_queue.cond);
+void ThreadPool::DoAddTask(const ThreadTaskInfo& info) {
+    m_queue.Push(info);
 }
 
-bool ThreadPool::AddTask(const shared_ptr<ThreadTask>& t) {
+bool ThreadPool::AddTask(const ThreadTaskInfo& info) {
     if (m_thread_num == 0) {
         return false;
     }
 
-    if (!t) {
+    if (!info.task) {
         return false;
     }
 
-    DoAddTask(t);
+    DoAddTask(info);
     return true;
 }
 
-void ThreadPool::DoAddThread() {
+void ThreadPool::DoAddThread(unsigned int num) {
     pthread_t pid;
-    if (pthread_create(&pid, nullptr, ThreadWorker, this) == 0) {
-        pthread_detach(pid);
-        pthread_mutex_lock(&m_thread_lock);
-        ++m_thread_num;
-        pthread_mutex_unlock(&m_thread_lock);
+    for (unsigned int i = 0; i < num; ++i) {
+        if (pthread_create(&pid, nullptr, ThreadWorker, this) == 0) {
+            pthread_detach(pid);
+            pthread_mutex_lock(&m_thread_lock);
+            ++m_thread_num;
+            pthread_mutex_unlock(&m_thread_lock);
+        }
     }
 }
 
 void ThreadPool::AddThread(unsigned int num) {
-    for (unsigned int i = 0; i < num; ++i) {
-        DoAddThread();
-    }
+    DoAddThread(num);
 }
 
-void ThreadPool::DoDelThread() {
-    DoAddTask(std::shared_ptr<ThreadTask>());
+void ThreadPool::DoDelThread(unsigned int num) {
+    ThreadTaskInfo dummy_info;
+    for (unsigned int i = 0; i < num; ++i) {
+        DoAddTask(dummy_info);
+    }
 }
 
 void ThreadPool::DelThread(unsigned int num) {
     if (num > m_thread_num) {
         num = m_thread_num;
     }
-
-    for (unsigned int i = 0; i < num; ++i) {
-        DoDelThread();
-    }
+    DoDelThread(num);
 }
 
 ThreadPool::ThreadPool() {
@@ -119,10 +115,7 @@ ThreadPool::ThreadPool() {
 }
 
 ThreadPool::~ThreadPool() {
-    // m_thread_num may change when theads are killed
-    for (unsigned int i = m_thread_num; i > 0; --i) {
-        DoDelThread();
-    }
+    DoDelThread(m_thread_num);
 
     // waiting for remaining task(s) to complete
     pthread_mutex_lock(&m_thread_lock);

@@ -15,11 +15,11 @@ public:
     }
 
 protected:
-    void Process() override {
-        cout << m_msg << endl;
+    ThreadTaskInfo Process() override {
+        cout << "tid[" << pthread_self() << "], msg -> " << m_msg << endl;
         m_is_finished = true;
+        return ThreadTaskInfo();
     }
-
     bool IsFinished() const override {
         return m_is_finished;
     }
@@ -31,10 +31,24 @@ private:
 
 int main(void) {
     ThreadPool tp;
-    tp.AddThread(5);
 
-    auto task = make_shared<TestThreadTask>("Hello, world!");
-    tp.AddTask(task);
+    tp.AddThread(8);
+    sleep(2);
+
+    TestThreadTask task("Hello, world!");
+    tp.AddTask(ThreadTaskInfo(&task));
+
+    vector<TestThreadTask> tasks;
+    tasks.emplace_back(TestThreadTask("a"));
+    tasks.emplace_back(TestThreadTask("b"));
+    tasks.emplace_back(TestThreadTask("c"));
+    tasks.emplace_back(TestThreadTask("d"));
+    tasks.emplace_back(TestThreadTask("e"));
+    vector<ThreadTaskInfo> infos;
+    for (auto x = tasks.begin(); x != tasks.end(); ++x) {
+        infos.push_back(ThreadTaskInfo(&(*x)));
+    }
+    tp.BatchAddTask(infos);
 
     tp.DelThread(2);
     sleep(1);
@@ -44,7 +58,10 @@ int main(void) {
     sleep(1);
     cout << "thread num = " << tp.ThreadNum() << endl;
 
-    task->Join();
+    task.Join();
+    for (auto x = tasks.begin(); x != tasks.end(); ++x) {
+        x->Join();
+    }
 
     return 0;
 }

@@ -1,19 +1,31 @@
 #ifndef __UTILS_THREADPOOL_H__
 #define __UTILS_THREADPOOL_H__
 
-#include <queue>
-#include <memory>
 #include <pthread.h>
+#include "queue.h"
 
 /* ------------------------------------------------------------------------- */
 
 namespace utils {
 
+struct ThreadTaskInfo;
+
 class ThreadTask {
 
 public:
     virtual ~ThreadTask() {}
-    virtual void Run() = 0;
+    /*
+     * returns <task, destructor> to be executed right after Run() returns,
+     * or <nullptr, destructor> to pick up the next item from task queue.
+     */
+    virtual ThreadTaskInfo Run() = 0;
+};
+
+class ThreadTaskDestructor {
+
+public:
+    virtual ~ThreadTaskDestructor() {}
+    virtual void Process(ThreadTask*) = 0;
 };
 
 class JoinableThreadTask : public ThreadTask {
@@ -21,11 +33,11 @@ class JoinableThreadTask : public ThreadTask {
 public:
     JoinableThreadTask();
     virtual ~JoinableThreadTask();
-    void Run() override final;
+    ThreadTaskInfo Run() override final;
     void Join();
 
 protected:
-    virtual void Process() = 0;
+    virtual ThreadTaskInfo Process() = 0;
     virtual bool IsFinished() const = 0;
 
 private:
@@ -33,20 +45,11 @@ private:
     pthread_cond_t m_cond;
 };
 
-struct ThreadTaskQueue {
-    ThreadTaskQueue() {
-        pthread_mutex_init(&mutex, nullptr);
-        pthread_cond_init(&cond, nullptr);
-    }
-
-    ~ThreadTaskQueue() {
-        pthread_cond_destroy(&cond);
-        pthread_mutex_destroy(&mutex);
-    }
-
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    std::queue<std::shared_ptr<ThreadTask>> tasklist;
+struct ThreadTaskInfo {
+    ThreadTaskInfo(ThreadTask* t = nullptr, ThreadTaskDestructor* d = nullptr)
+        : task(t), destructor(d) {}
+    ThreadTask* task;
+    ThreadTaskDestructor* destructor;
 };
 
 /* ------------------------------------------------------------------------- */
@@ -57,18 +60,25 @@ public:
     ThreadPool();
     virtual ~ThreadPool();
 
-    bool AddTask(const std::shared_ptr<ThreadTask>&);
+    bool AddTask(const ThreadTaskInfo&);
+
+    template <template <typename...> class ContainerType>
+    void BatchAddTask(const ContainerType<ThreadTaskInfo>& tasks) {
+        m_queue.BatchPush(tasks, [] (const ThreadTaskInfo& info) -> bool {
+            return (info.task != nullptr);
+        });
+    }
 
     unsigned int ThreadNum() const { return m_thread_num; }
-    unsigned int PendingTaskNum() const { return m_queue.tasklist.size(); }
+    unsigned int PendingTaskNum() const { return m_queue.Size(); }
 
     void AddThread(unsigned int num);
     void DelThread(unsigned int num);
 
 private:
-    void DoAddThread();
-    void DoDelThread();
-    void DoAddTask(const std::shared_ptr<ThreadTask>&);
+    void DoAddThread(unsigned int num);
+    void DoDelThread(unsigned int num);
+    void DoAddTask(const ThreadTaskInfo&);
 
 private:
     static void* ThreadWorker(void*);
@@ -77,7 +87,7 @@ private:
     unsigned int m_thread_num;
     pthread_mutex_t m_thread_lock;
     pthread_cond_t m_thread_cond;
-    ThreadTaskQueue m_queue;
+    Queue<ThreadTaskInfo> m_queue;
 };
 
 }
