@@ -1,6 +1,7 @@
 #ifndef __UTILS_QUEUE_H__
 #define __UTILS_QUEUE_H__
 
+#include <pthread.h>
 #include <queue>
 
 namespace utils {
@@ -10,6 +11,7 @@ class Queue {
 
 public:
     Queue() {
+        m_item_count = 0;
         pthread_mutex_init(&m_mutex, nullptr);
         pthread_cond_init(&m_cond, nullptr);
     }
@@ -22,6 +24,7 @@ public:
     void Push(const T& item) {
         pthread_mutex_lock(&m_mutex);
         m_items.push(item);
+        ++m_item_count;
         pthread_mutex_unlock(&m_mutex);
         pthread_cond_signal(&m_cond);
     }
@@ -33,12 +36,13 @@ public:
         }
         auto item = m_items.front();
         m_items.pop();
+        --m_item_count;
         pthread_mutex_unlock(&m_mutex);
         return item;
     }
 
     size_t Size() const {
-        return m_items.size();
+        return m_item_count;
     }
 
     template <template <typename...> class ContainerType, typename PredicateType>
@@ -53,6 +57,7 @@ public:
                 ++counter;
             }
         }
+        m_item_count += counter;
         pthread_mutex_unlock(&m_mutex);
 
         while (counter > 0) {
@@ -62,6 +67,7 @@ public:
     }
 
 private:
+    unsigned int m_item_count;
     pthread_mutex_t m_mutex;
     pthread_cond_t m_cond;
     std::queue<T> m_items;

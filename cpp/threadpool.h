@@ -1,7 +1,6 @@
 #ifndef __UTILS_THREADPOOL_H__
 #define __UTILS_THREADPOOL_H__
 
-#include <pthread.h>
 #include "queue.h"
 
 /* ------------------------------------------------------------------------- */
@@ -60,7 +59,7 @@ public:
     ThreadPool();
     virtual ~ThreadPool();
 
-    bool AddTask(const ThreadTaskInfo&);
+    void AddTask(const ThreadTaskInfo&);
 
     template <template <typename...> class ContainerType>
     void BatchAddTask(const ContainerType<ThreadTaskInfo>& tasks) {
@@ -76,8 +75,6 @@ public:
     void DelThread(unsigned int num);
 
 private:
-    void DoAddThread(unsigned int num);
-    void DoDelThread(unsigned int num);
     void DoAddTask(const ThreadTaskInfo&);
 
 private:

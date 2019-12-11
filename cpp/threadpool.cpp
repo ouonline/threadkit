@@ -43,8 +43,10 @@ void* ThreadPool::ThreadWorker(void* arg) {
         if (!info.task) {
             pthread_mutex_lock(&tp->m_thread_lock);
             --tp->m_thread_num;
+            if (tp->m_thread_num == 0) {
+                pthread_cond_signal(&tp->m_thread_cond);
+            }
             pthread_mutex_unlock(&tp->m_thread_lock);
-            pthread_cond_signal(&tp->m_thread_cond);
             break;
         }
 
@@ -65,20 +67,13 @@ void ThreadPool::DoAddTask(const ThreadTaskInfo& info) {
     m_queue.Push(info);
 }
 
-bool ThreadPool::AddTask(const ThreadTaskInfo& info) {
-    if (m_thread_num == 0) {
-        return false;
+void ThreadPool::AddTask(const ThreadTaskInfo& info) {
+    if (info.task) {
+        DoAddTask(info);
     }
-
-    if (!info.task) {
-        return false;
-    }
-
-    DoAddTask(info);
-    return true;
 }
 
-void ThreadPool::DoAddThread(unsigned int num) {
+void ThreadPool::AddThread(unsigned int num) {
     pthread_t pid;
     for (unsigned int i = 0; i < num; ++i) {
         if (pthread_create(&pid, nullptr, ThreadWorker, this) == 0) {
@@ -90,22 +85,15 @@ void ThreadPool::DoAddThread(unsigned int num) {
     }
 }
 
-void ThreadPool::AddThread(unsigned int num) {
-    DoAddThread(num);
-}
-
-void ThreadPool::DoDelThread(unsigned int num) {
-    ThreadTaskInfo dummy_info;
-    for (unsigned int i = 0; i < num; ++i) {
-        DoAddTask(dummy_info);
-    }
-}
-
 void ThreadPool::DelThread(unsigned int num) {
     if (num > m_thread_num) {
         num = m_thread_num;
     }
-    DoDelThread(num);
+
+    ThreadTaskInfo dummy_info;
+    for (unsigned int i = 0; i < num; ++i) {
+        DoAddTask(dummy_info);
+    }
 }
 
 ThreadPool::ThreadPool() {
@@ -115,7 +103,7 @@ ThreadPool::ThreadPool() {
 }
 
 ThreadPool::~ThreadPool() {
-    DoDelThread(m_thread_num);
+    DelThread(m_thread_num);
 
     // waiting for remaining task(s) to complete
     pthread_mutex_lock(&m_thread_lock);
