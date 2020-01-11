@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <queue>
+#include <functional>
 
 namespace utils {
 
@@ -29,6 +30,25 @@ public:
         pthread_cond_signal(&m_cond);
     }
 
+    void BatchPush(const std::function<void (const std::function<void (const T&)>&)>& generator) {
+        unsigned int counter = 0;
+
+        auto push_helper = [this, &counter] (const T& item) -> void {
+            m_items.push(item);
+            ++counter;
+        };
+
+        pthread_mutex_lock(&m_mutex);
+        generator(push_helper);
+        m_item_count += counter;
+        pthread_mutex_unlock(&m_mutex);
+
+        while (counter > 0) {
+            pthread_cond_signal(&m_cond);
+            --counter;
+        }
+    }
+
     T Pop() {
         pthread_mutex_lock(&m_mutex);
         while (m_items.empty()) {
@@ -43,27 +63,6 @@ public:
 
     size_t Size() const {
         return m_item_count;
-    }
-
-    template <template <typename...> class ContainerType, typename PredicateType>
-    void BatchPush(const ContainerType<T>& c,
-                   const PredicateType& p = [] (const T&) -> bool { return true; }) {
-        unsigned int counter = 0;
-
-        pthread_mutex_lock(&m_mutex);
-        for (auto iter = c.begin(); iter != c.end(); ++iter) {
-            if (p(*iter)) {
-                m_items.push(*iter);
-                ++counter;
-            }
-        }
-        m_item_count += counter;
-        pthread_mutex_unlock(&m_mutex);
-
-        while (counter > 0) {
-            pthread_cond_signal(&m_cond);
-            --counter;
-        }
     }
 
 private:

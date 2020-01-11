@@ -33,7 +33,6 @@ int main(void) {
     ThreadPool tp;
 
     tp.AddThread(8);
-    sleep(2);
 
     TestThreadTask task("Hello, world!");
     tp.AddTask(ThreadTaskInfo(&task));
@@ -44,11 +43,12 @@ int main(void) {
     tasks.emplace_back(TestThreadTask("c"));
     tasks.emplace_back(TestThreadTask("d"));
     tasks.emplace_back(TestThreadTask("e"));
-    vector<ThreadTaskInfo> infos;
-    for (auto x = tasks.begin(); x != tasks.end(); ++x) {
-        infos.push_back(ThreadTaskInfo(&(*x)));
-    }
-    tp.BatchAddTask(infos);
+
+    tp.BatchAddTask([&tasks] (const function<void (const ThreadTaskInfo&)>& add_task) -> void {
+        for (auto iter = tasks.begin(); iter != tasks.end(); ++iter) {
+            add_task(ThreadTaskInfo(&(*iter)));
+        }
+    });
 
     tp.DelThread(2);
     sleep(1);

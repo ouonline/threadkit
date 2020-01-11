@@ -73,6 +73,16 @@ void ThreadPool::AddTask(const ThreadTaskInfo& info) {
     }
 }
 
+void ThreadPool::BatchAddTask(const function<void (const function<void (const ThreadTaskInfo&)>&)>& generator) {
+    m_queue.BatchPush([&generator] (const function<void (const ThreadTaskInfo&)>& push_helper) -> void {
+        generator([&push_helper] (const ThreadTaskInfo& info) -> void {
+            if (info.task) {
+                push_helper(info);
+            }
+        });
+    });
+}
+
 void ThreadPool::AddThread(unsigned int num) {
     pthread_t pid;
     for (unsigned int i = 0; i < num; ++i) {

@@ -44,7 +44,7 @@ private:
     pthread_cond_t m_cond;
 };
 
-struct ThreadTaskInfo {
+struct ThreadTaskInfo final {
     ThreadTaskInfo(ThreadTask* t = nullptr, ThreadTaskDestructor* d = nullptr)
         : task(t), destructor(d) {}
     ThreadTask* task;
@@ -60,13 +60,7 @@ public:
     virtual ~ThreadPool();
 
     void AddTask(const ThreadTaskInfo&);
-
-    template <template <typename...> class ContainerType>
-    void BatchAddTask(const ContainerType<ThreadTaskInfo>& tasks) {
-        m_queue.BatchPush(tasks, [] (const ThreadTaskInfo& info) -> bool {
-            return (info.task != nullptr);
-        });
-    }
+    void BatchAddTask(const std::function<void (const std::function<void (const ThreadTaskInfo&)>&)>& generator);
 
     unsigned int ThreadNum() const { return m_thread_num; }
     unsigned int PendingTaskNum() const { return m_queue.Size(); }
