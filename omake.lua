@@ -1,7 +1,7 @@
 project = CreateProject()
 
-target = project:CreateLibrary("threadpool")
-target:AddSourceFile("*.cpp")
-target:AddSystemDynamicLibraries("pthread")
+target = project:CreateLibrary("threadpool", STATIC | SHARED)
+target:AddSourceFiles("*.cpp")
+target:AddSysLibraries("pthread")
 
 return project
