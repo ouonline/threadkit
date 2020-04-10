@@ -24,7 +24,7 @@ threadpool_shared_OBJS := threadpool.cpp.omake_dep_0.o
 threadpool_shared_LIBS := -lpthread
 
 libthreadpool_shared.so: $(threadpool_shared_OBJS)
-	$(CXX) $(CXXFLAGS) -shared -o $@ $^ $(threadpool_shared_LIBS)
+	$(CXX) $(CXXFLAGS) -fPIC -Wextra -Werror -Wall -shared -o $@ $^ $(threadpool_shared_LIBS)
 
 threadpool_static_OBJS := threadpool.cpp.omake_dep_0.o
 

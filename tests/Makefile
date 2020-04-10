@@ -19,17 +19,17 @@ all: $(TARGET)
 omake_phony_0:
 	$(MAKE) debug=$(debug) libthreadpool_static.a -C ..
 
-test_threadpool_INCLUDE := -I../..
+omake_dep_0_INCLUDE := -I../..
 
-thread_pool_test.cpp.test_threadpool.o: thread_pool_test.cpp
-	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -fPIC $(test_threadpool_INCLUDE) -c $< -o $@
+thread_pool_test.cpp.omake_dep_0.o: thread_pool_test.cpp
+	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -fPIC $(omake_dep_0_INCLUDE) -c $< -o $@
 
-test_threadpool_OBJS := thread_pool_test.cpp.test_threadpool.o
+test_threadpool_OBJS := thread_pool_test.cpp.omake_dep_0.o
 
 test_threadpool_LIBS := ../libthreadpool_static.a -lpthread
 
 test_threadpool: $(test_threadpool_OBJS) | omake_phony_0
-	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -fPIC -o $@ $^ $(test_threadpool_LIBS)
+	$(CXX) $(CXXFLAGS) -fPIC -Wextra -Werror -Wall -o $@ $^ $(test_threadpool_LIBS)
 
 clean:
 	rm -f $(TARGET) $(test_threadpool_OBJS)
