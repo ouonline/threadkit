@@ -8,7 +8,7 @@ else
 	CXXFLAGS += -O2 -DNDEBUG
 endif
 
-TARGET := test_threadpool
+TARGET := test_threadkit
 
 .PHONY: all clean distclean
 
@@ -16,22 +16,22 @@ all: $(TARGET)
 
 .PHONY: omake_phony_0
 omake_phony_0:
-	$(MAKE) debug=$(debug) libthreadpool_static.a -C ..
+	$(MAKE) debug=$(debug) libthreadkit_static.a -C ..
 
 omake_dep_0_INCLUDE := -I../..
 
 omake_dep_0.thread_pool_test.cpp.o: thread_pool_test.cpp
 	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra $(omake_dep_0_INCLUDE) -c $< -o $@
 
-test_threadpool_OBJS := omake_dep_0.thread_pool_test.cpp.o
+test_threadkit_OBJS := omake_dep_0.thread_pool_test.cpp.o
 
-test_threadpool_LIBS := ../libthreadpool_static.a -lpthread
+test_threadkit_LIBS := ../libthreadkit_static.a -lpthread
 
-test_threadpool: $(test_threadpool_OBJS) | omake_phony_0
-	$(CXX) $(CXXFLAGS) -Wextra -Werror -Wall -o $@ $^ $(test_threadpool_LIBS)
+test_threadkit: $(test_threadkit_OBJS) | omake_phony_0
+	$(CXX) $(CXXFLAGS) -Wextra -Werror -Wall -o $@ $^ $(test_threadkit_LIBS)
 
 clean:
-	rm -f $(TARGET) $(test_threadpool_OBJS)
+	rm -f $(TARGET) $(test_threadkit_OBJS)
 
 distclean:
 	$(MAKE) clean

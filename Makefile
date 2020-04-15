@@ -10,7 +10,7 @@ endif
 
 AR := ar
 
-TARGET := libthreadpool_shared.so libthreadpool_static.a
+TARGET := libthreadkit_shared.so libthreadkit_static.a
 
 .PHONY: all clean distclean
 
@@ -19,20 +19,20 @@ all: $(TARGET)
 omake_dep_0.threadpool.cpp.o: threadpool.cpp
 	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -fPIC -c $< -o $@
 
-threadpool_shared_OBJS := omake_dep_0.threadpool.cpp.o
+threadkit_shared_OBJS := omake_dep_0.threadpool.cpp.o
 
-threadpool_shared_LIBS := -lpthread
+threadkit_shared_LIBS := -lpthread
 
-libthreadpool_shared.so: $(threadpool_shared_OBJS)
-	$(CXX) $(CXXFLAGS) -fPIC -Wextra -Werror -Wall -shared -o $@ $^ $(threadpool_shared_LIBS)
+libthreadkit_shared.so: $(threadkit_shared_OBJS)
+	$(CXX) $(CXXFLAGS) -fPIC -Wextra -Werror -Wall -shared -o $@ $^ $(threadkit_shared_LIBS)
 
-threadpool_static_OBJS := omake_dep_0.threadpool.cpp.o
+threadkit_static_OBJS := omake_dep_0.threadpool.cpp.o
 
-libthreadpool_static.a: $(threadpool_static_OBJS)
+libthreadkit_static.a: $(threadkit_static_OBJS)
 	$(AR) rc $@ $^
 
 clean:
-	rm -f $(TARGET) $(threadpool_shared_OBJS) $(threadpool_static_OBJS)
+	rm -f $(TARGET) $(threadkit_shared_OBJS) $(threadkit_static_OBJS)
 
 distclean:
 	$(MAKE) clean
