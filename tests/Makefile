@@ -10,26 +10,29 @@ endif
 
 TARGET := test_threadpool
 
-.PHONY: all clean
+.PHONY: all clean distclean
 
 all: $(TARGET)
 
 .PHONY: omake_phony_0
-
 omake_phony_0:
 	$(MAKE) debug=$(debug) libthreadpool_static.a -C ..
 
 omake_dep_0_INCLUDE := -I../..
 
-thread_pool_test.cpp.omake_dep_0.o: thread_pool_test.cpp
-	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -fPIC $(omake_dep_0_INCLUDE) -c $< -o $@
+omake_dep_0.thread_pool_test.cpp.o: thread_pool_test.cpp
+	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra $(omake_dep_0_INCLUDE) -c $< -o $@
 
-test_threadpool_OBJS := thread_pool_test.cpp.omake_dep_0.o
+test_threadpool_OBJS := omake_dep_0.thread_pool_test.cpp.o
 
 test_threadpool_LIBS := ../libthreadpool_static.a -lpthread
 
 test_threadpool: $(test_threadpool_OBJS) | omake_phony_0
-	$(CXX) $(CXXFLAGS) -fPIC -Wextra -Werror -Wall -o $@ $^ $(test_threadpool_LIBS)
+	$(CXX) $(CXXFLAGS) -Wextra -Werror -Wall -o $@ $^ $(test_threadpool_LIBS)
 
 clean:
 	rm -f $(TARGET) $(test_threadpool_OBJS)
+
+distclean:
+	$(MAKE) clean
+	$(MAKE) distclean -C ..

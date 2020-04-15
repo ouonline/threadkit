@@ -12,24 +12,27 @@ AR := ar
 
 TARGET := libthreadpool_shared.so libthreadpool_static.a
 
-.PHONY: all clean
+.PHONY: all clean distclean
 
 all: $(TARGET)
 
-threadpool.cpp.omake_dep_0.o: threadpool.cpp
+omake_dep_0.threadpool.cpp.o: threadpool.cpp
 	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -fPIC -c $< -o $@
 
-threadpool_shared_OBJS := threadpool.cpp.omake_dep_0.o
+threadpool_shared_OBJS := omake_dep_0.threadpool.cpp.o
 
 threadpool_shared_LIBS := -lpthread
 
 libthreadpool_shared.so: $(threadpool_shared_OBJS)
 	$(CXX) $(CXXFLAGS) -fPIC -Wextra -Werror -Wall -shared -o $@ $^ $(threadpool_shared_LIBS)
 
-threadpool_static_OBJS := threadpool.cpp.omake_dep_0.o
+threadpool_static_OBJS := omake_dep_0.threadpool.cpp.o
 
 libthreadpool_static.a: $(threadpool_static_OBJS)
 	$(AR) rc $@ $^
 
 clean:
 	rm -f $(TARGET) $(threadpool_shared_OBJS) $(threadpool_static_OBJS)
+
+distclean:
+	$(MAKE) clean

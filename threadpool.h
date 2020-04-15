@@ -60,7 +60,6 @@ public:
     virtual ~ThreadPool();
 
     void AddTask(const ThreadTaskInfo&);
-    void BatchAddTask(const std::function<void (const std::function<void (const ThreadTaskInfo&)>&)>& generator);
 
     unsigned int ThreadNum() const { return m_thread_num; }
     unsigned int PendingTaskNum() const { return m_queue.Size(); }
