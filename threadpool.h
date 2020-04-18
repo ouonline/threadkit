@@ -1,11 +1,11 @@
-#ifndef __UTILS_THREADPOOL_H__
-#define __UTILS_THREADPOOL_H__
+#ifndef __THREADKIT_THREADPOOL_H__
+#define __THREADKIT_THREADPOOL_H__
 
 #include "queue.h"
 
 /* ------------------------------------------------------------------------- */
 
-namespace utils {
+namespace outils {
 
 struct ThreadTaskInfo;
 
@@ -57,7 +57,7 @@ class ThreadPool final {
 
 public:
     ThreadPool();
-    virtual ~ThreadPool();
+    ~ThreadPool();
 
     void AddTask(const ThreadTaskInfo&);
 
@@ -71,13 +71,17 @@ private:
     void DoAddTask(const ThreadTaskInfo&);
 
 private:
-    static void* ThreadWorker(void*);
+    static void* ThreadFunc(void*);
 
 private:
     unsigned int m_thread_num;
     pthread_mutex_t m_thread_lock;
     pthread_cond_t m_thread_cond;
     Queue<ThreadTaskInfo> m_queue;
+
+private:
+    ThreadPool(const ThreadPool&);
+    ThreadPool& operator=(const ThreadPool&);
 };
 
 }

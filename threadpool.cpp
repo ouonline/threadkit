@@ -1,7 +1,7 @@
 #include "threadpool.h"
 using namespace std;
 
-namespace utils {
+namespace outils {
 
 JoinableThreadTask::JoinableThreadTask() {
     pthread_mutex_init(&m_mutex, nullptr);
@@ -34,7 +34,7 @@ void JoinableThreadTask::Join() {
 
 /* -------------------------------------------------------------------------- */
 
-void* ThreadPool::ThreadWorker(void* arg) {
+void* ThreadPool::ThreadFunc(void* arg) {
     auto tp = (ThreadPool*)arg;
     auto q = &(tp->m_queue);
 
@@ -76,7 +76,7 @@ void ThreadPool::AddTask(const ThreadTaskInfo& info) {
 void ThreadPool::AddThread(unsigned int num) {
     pthread_t pid;
     for (unsigned int i = 0; i < num; ++i) {
-        if (pthread_create(&pid, nullptr, ThreadWorker, this) == 0) {
+        if (pthread_create(&pid, nullptr, ThreadFunc, this) == 0) {
             pthread_detach(pid);
             pthread_mutex_lock(&m_thread_lock);
             ++m_thread_num;

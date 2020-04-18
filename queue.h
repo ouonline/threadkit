@@ -1,10 +1,10 @@
-#ifndef __UTILS_QUEUE_H__
-#define __UTILS_QUEUE_H__
+#ifndef __THREADKIT_QUEUE_H__
+#define __THREADKIT_QUEUE_H__
 
 #include <pthread.h>
 #include <list>
 
-namespace utils {
+namespace outils {
 
 template <typename T>
 class Queue {
