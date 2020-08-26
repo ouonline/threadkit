@@ -28,7 +28,7 @@ test_threadkit_OBJS := omake_dep_0.thread_pool_test.cpp.o
 test_threadkit_LIBS := ../libthreadkit_static.a -lpthread
 
 test_threadkit: $(test_threadkit_OBJS) | omake_phony_0
-	$(CXX) $(CXXFLAGS) -Wextra -Werror -Wall -o $@ $^ $(test_threadkit_LIBS)
+	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -o $@ $^ $(test_threadkit_LIBS)
 
 clean:
 	rm -f $(TARGET) $(test_threadkit_OBJS)

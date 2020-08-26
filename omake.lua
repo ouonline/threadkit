@@ -1,8 +1,8 @@
-project = CreateProject()
+project = Project()
 
 dep = project:CreateDependency()
     :AddSourceFiles("*.cpp")
-    :AddFlags("-Wall", "-Werror", "-Wextra", "-fPIC")
+    :AddFlags({"-Wall", "-Werror", "-Wextra", "-fPIC"})
     :AddSysLibraries("pthread")
 
 project:CreateStaticLibrary("threadkit_static"):AddDependencies(dep)

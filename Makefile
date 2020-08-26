@@ -24,7 +24,7 @@ threadkit_shared_OBJS := omake_dep_0.threadpool.cpp.o
 threadkit_shared_LIBS := -lpthread
 
 libthreadkit_shared.so: $(threadkit_shared_OBJS)
-	$(CXX) $(CXXFLAGS) -fPIC -Wextra -Werror -Wall -shared -o $@ $^ $(threadkit_shared_LIBS)
+	$(CXX) $(CXXFLAGS) -Wall -Werror -Wextra -fPIC -shared -o $@ $^ $(threadkit_shared_LIBS)
 
 threadkit_static_OBJS := omake_dep_0.threadpool.cpp.o
 
