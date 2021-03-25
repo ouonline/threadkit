@@ -15,10 +15,10 @@ public:
     }
 
 protected:
-    ThreadTaskInfo Process() override {
+    shared_ptr<ThreadTask> Process() override {
         cout << "tid[" << pthread_self() << "], msg -> " << m_msg << endl;
         m_is_finished = true;
-        return ThreadTaskInfo();
+        return shared_ptr<ThreadTask>();
     }
     bool IsFinished() const override {
         return m_is_finished;
@@ -29,13 +29,15 @@ private:
     string m_msg;
 };
 
+static inline void EmptyDeleter(ThreadTask*) {}
+
 int main(void) {
     ThreadPool tp;
 
     tp.AddThread(8);
 
     TestThreadTask task("Hello, world!");
-    tp.AddTask(ThreadTaskInfo(&task));
+    tp.AddTask(shared_ptr<ThreadTask>(&task, EmptyDeleter));
 
     tp.DelThread(2);
     sleep(1);

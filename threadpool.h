@@ -2,29 +2,21 @@
 #define __THREADKIT_THREADPOOL_H__
 
 #include "queue.h"
+#include <memory>
 
 /* ------------------------------------------------------------------------- */
 
 namespace outils {
 
-struct ThreadTaskInfo;
-
 class ThreadTask {
 
 public:
     virtual ~ThreadTask() {}
-    /*
-     * returns <task, destructor> to be executed right after Run() returns,
-     * or <nullptr, destructor> to pick up the next item from task queue.
+    /**
+       returns a task that will be executed right after Run() returns,
+       or nullptr to pick up the next item from task queue.
      */
-    virtual ThreadTaskInfo Run() = 0;
-};
-
-class ThreadTaskDestructor {
-
-public:
-    virtual ~ThreadTaskDestructor() {}
-    virtual void Process(ThreadTask*) = 0;
+    virtual std::shared_ptr<ThreadTask> Run() = 0;
 };
 
 class JoinableThreadTask : public ThreadTask {
@@ -32,23 +24,16 @@ class JoinableThreadTask : public ThreadTask {
 public:
     JoinableThreadTask();
     virtual ~JoinableThreadTask();
-    ThreadTaskInfo Run() override final;
+    std::shared_ptr<ThreadTask> Run() override final;
     void Join();
 
 protected:
-    virtual ThreadTaskInfo Process() = 0;
+    virtual std::shared_ptr<ThreadTask> Process() = 0;
     virtual bool IsFinished() const = 0;
 
 private:
     pthread_mutex_t m_mutex;
     pthread_cond_t m_cond;
-};
-
-struct ThreadTaskInfo final {
-    ThreadTaskInfo(ThreadTask* t = nullptr, ThreadTaskDestructor* d = nullptr)
-        : task(t), destructor(d) {}
-    ThreadTask* task;
-    ThreadTaskDestructor* destructor;
 };
 
 /* ------------------------------------------------------------------------- */
@@ -59,7 +44,7 @@ public:
     ThreadPool();
     ~ThreadPool();
 
-    void AddTask(const ThreadTaskInfo&);
+    void AddTask(const std::shared_ptr<ThreadTask>&);
 
     unsigned int ThreadNum() const { return m_thread_num; }
     unsigned int PendingTaskNum() const { return m_queue.Size(); }
@@ -68,7 +53,7 @@ public:
     void DelThread(unsigned int num);
 
 private:
-    void DoAddTask(const ThreadTaskInfo&);
+    void DoAddTask(const std::shared_ptr<ThreadTask>&);
 
 private:
     static void* ThreadFunc(void*);
@@ -77,7 +62,7 @@ private:
     unsigned int m_thread_num;
     pthread_mutex_t m_thread_lock;
     pthread_cond_t m_thread_cond;
-    Queue<ThreadTaskInfo> m_queue;
+    Queue<std::shared_ptr<ThreadTask>> m_queue;
 
 private:
     ThreadPool(const ThreadPool&);
