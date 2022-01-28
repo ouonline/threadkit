@@ -22,8 +22,7 @@ public:
 class JoinableThreadTask : public ThreadTask {
 
 public:
-    JoinableThreadTask();
-    virtual ~JoinableThreadTask();
+    virtual ~JoinableThreadTask() {}
     std::shared_ptr<ThreadTask> Run() override final;
     void Join();
 
@@ -32,8 +31,8 @@ protected:
     virtual bool IsFinished() const = 0;
 
 private:
-    pthread_mutex_t m_mutex;
-    pthread_cond_t m_cond;
+    std::mutex m_mutex;
+    std::condition_variable m_cond;
 };
 
 /* ------------------------------------------------------------------------- */
@@ -41,7 +40,7 @@ private:
 class ThreadPool final {
 
 public:
-    ThreadPool();
+    ThreadPool() : m_thread_num(0) {}
     ~ThreadPool();
 
     void AddTask(const std::shared_ptr<ThreadTask>&);
@@ -56,12 +55,12 @@ private:
     void DoAddTask(const std::shared_ptr<ThreadTask>&);
 
 private:
-    static void* ThreadFunc(void*);
+    static void ThreadFunc(ThreadPool*);
 
 private:
     unsigned int m_thread_num;
-    pthread_mutex_t m_thread_lock;
-    pthread_cond_t m_thread_cond;
+    std::mutex m_thread_lock;
+    std::condition_variable m_thread_cond;
     Queue<std::shared_ptr<ThreadTask>> m_queue;
 
 private:

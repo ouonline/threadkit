@@ -1,7 +1,7 @@
 #include <iostream>
+#include <thread>
+#include <chrono>
 using namespace std;
-
-#include <unistd.h>
 
 #include "threadkit/threadpool.h"
 using namespace outils;
@@ -16,7 +16,7 @@ public:
 
 protected:
     shared_ptr<ThreadTask> Process() override {
-        cout << "tid[" << pthread_self() << "], msg -> " << m_msg << endl;
+        cout << "tid[" << std::this_thread::get_id() << "], msg -> " << m_msg << endl;
         m_is_finished = true;
         return shared_ptr<ThreadTask>();
     }
@@ -40,11 +40,11 @@ int main(void) {
     tp.AddTask(shared_ptr<ThreadTask>(&task, EmptyDeleter));
 
     tp.DelThread(2);
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     cout << "thread num = " << tp.ThreadNum() << endl;
 
     tp.AddThread(5);
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     cout << "thread num = " << tp.ThreadNum() << endl;
 
     task.Join();

@@ -1,47 +1,36 @@
 #ifndef __THREADKIT_QUEUE_H__
 #define __THREADKIT_QUEUE_H__
 
-#include <pthread.h>
+#include <mutex>
+#include <condition_variable>
 #include <list>
 
 namespace outils {
 
 template <typename T>
 class Queue {
-
 public:
-    Queue() {
-        pthread_mutex_init(&m_mutex, nullptr);
-        pthread_cond_init(&m_cond, nullptr);
-    }
-
-    ~Queue() {
-        pthread_cond_destroy(&m_cond);
-        pthread_mutex_destroy(&m_mutex);
-    }
-
     void Push(const T& item) {
-        pthread_mutex_lock(&m_mutex);
+        m_mutex.lock();
         m_items.push_back(item);
-        pthread_mutex_unlock(&m_mutex);
-        pthread_cond_signal(&m_cond);
+        m_mutex.unlock();
+        m_cond.notify_one();
     }
 
     void Push(T&& item) {
-        pthread_mutex_lock(&m_mutex);
-        m_items.push_back(item);
-        pthread_mutex_unlock(&m_mutex);
-        pthread_cond_signal(&m_cond);
+        m_mutex.lock();
+        m_items.emplace_back(std::move(item));
+        m_mutex.unlock();
+        m_cond.notify_one();
     }
 
     T Pop() {
-        pthread_mutex_lock(&m_mutex);
+        std::unique_lock<std::mutex> lck(m_mutex);
         while (m_items.empty()) {
-            pthread_cond_wait(&m_cond, &m_mutex);
+            m_cond.wait(lck);
         }
         auto item = m_items.front();
         m_items.pop_front();
-        pthread_mutex_unlock(&m_mutex);
         return item;
     }
 
@@ -50,8 +39,8 @@ public:
     }
 
 private:
-    pthread_mutex_t m_mutex;
-    pthread_cond_t m_cond;
+    std::mutex m_mutex;
+    std::condition_variable m_cond;
     std::list<T> m_items;
 };
 
