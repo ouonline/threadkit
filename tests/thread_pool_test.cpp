@@ -4,7 +4,7 @@
 using namespace std;
 
 #include "threadkit/threadpool.h"
-using namespace outils;
+using namespace threadkit;
 
 class TestThreadTask : public JoinableThreadTask {
 

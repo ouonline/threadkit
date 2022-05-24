@@ -2,7 +2,7 @@
 #include <thread>
 using namespace std;
 
-namespace outils {
+namespace threadkit {
 
 shared_ptr<ThreadTask> JoinableThreadTask::Run() {
     shared_ptr<ThreadTask> next_task;

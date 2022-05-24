@@ -5,7 +5,7 @@
 #include <condition_variable>
 #include <list>
 
-namespace outils {
+namespace threadkit {
 
 template <typename T>
 class Queue {

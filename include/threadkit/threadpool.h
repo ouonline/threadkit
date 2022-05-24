@@ -6,7 +6,7 @@
 
 /* ------------------------------------------------------------------------- */
 
-namespace outils {
+namespace threadkit {
 
 class ThreadTask {
 
