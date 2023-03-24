@@ -17,9 +17,9 @@ shared_ptr<ThreadTask> JoinableThreadTask::Run() {
 
 void JoinableThreadTask::Join() {
     std::unique_lock<std::mutex> lck(m_mutex);
-    while (!IsFinished()) {
-        m_cond.wait(lck);
-    }
+    m_cond.wait(lck, [this]() -> bool {
+        return IsFinished();
+    });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -80,9 +80,9 @@ ThreadPool::~ThreadPool() {
 
     // waiting for remaining task(s) to complete
     std::unique_lock<std::mutex> lck(m_thread_lock);
-    while (m_thread_num > 0) {
-        m_thread_cond.wait(lck);
-    }
+    m_thread_cond.wait(lck, [this]() -> bool {
+        return (m_thread_num == 0);
+    });
 }
 
 }

@@ -15,7 +15,7 @@ public:
     /**
        returns a task that will be executed right after Run() returns,
        or nullptr to pick up the next item from task queue.
-     */
+    */
     virtual std::shared_ptr<ThreadTask> Run() = 0;
 };
 
@@ -38,15 +38,14 @@ private:
 /* ------------------------------------------------------------------------- */
 
 class ThreadPool final {
-
 public:
     ThreadPool() : m_thread_num(0) {}
     ~ThreadPool();
 
     void AddTask(const std::shared_ptr<ThreadTask>&);
 
-    unsigned int ThreadNum() const { return m_thread_num; }
-    unsigned int PendingTaskNum() const { return m_queue.Size(); }
+    unsigned int GetThreadNum() const { return m_thread_num; }
+    unsigned int GetPendingTaskNum() const { return m_queue.Size(); }
 
     void AddThread(unsigned int num);
     void DelThread(unsigned int num);
@@ -64,8 +63,8 @@ private:
     Queue<std::shared_ptr<ThreadTask>> m_queue;
 
 private:
-    ThreadPool(const ThreadPool&);
-    ThreadPool& operator=(const ThreadPool&);
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
 };
 
 }
