@@ -41,11 +41,11 @@ int main(void) {
 
     tp.DelThread(2);
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    cout << "thread num = " << tp.ThreadNum() << endl;
+    cout << "thread num = " << tp.GetThreadNum() << endl;
 
     tp.AddThread(5);
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    cout << "thread num = " << tp.ThreadNum() << endl;
+    cout << "thread num = " << tp.GetThreadNum() << endl;
 
     task.Join();
 
