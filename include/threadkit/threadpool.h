@@ -9,7 +9,6 @@
 namespace threadkit {
 
 class ThreadTask {
-
 public:
     virtual ~ThreadTask() {}
     /**
@@ -20,19 +19,26 @@ public:
 };
 
 class JoinableThreadTask : public ThreadTask {
-
 public:
-    virtual ~JoinableThreadTask() {}
     std::shared_ptr<ThreadTask> Run() override final;
     void Join();
 
 protected:
-    virtual std::shared_ptr<ThreadTask> Process() = 0;
+    JoinableThreadTask() {}
+    virtual ~JoinableThreadTask() {}
+
     virtual bool IsFinished() const = 0;
+    virtual std::shared_ptr<ThreadTask> Process() = 0;
 
 private:
     std::mutex m_mutex;
     std::condition_variable m_cond;
+
+private:
+    JoinableThreadTask(const JoinableThreadTask&) = delete;
+    JoinableThreadTask(JoinableThreadTask&&) = delete;
+    void operator=(const JoinableThreadTask&) = delete;
+    void operator=(JoinableThreadTask&&) = delete;
 };
 
 /* ------------------------------------------------------------------------- */
@@ -64,7 +70,9 @@ private:
 
 private:
     ThreadPool(const ThreadPool&) = delete;
+    ThreadPool(ThreadPool&&) = delete;
     ThreadPool& operator=(const ThreadPool&) = delete;
+    ThreadPool& operator=(ThreadPool&&) = delete;
 };
 
 }

@@ -9,8 +9,8 @@ shared_ptr<ThreadTask> JoinableThreadTask::Run() {
     if (!IsFinished()) {
         m_mutex.lock();
         next_task = Process();
-        m_mutex.unlock();
         m_cond.notify_one();
+        m_mutex.unlock();
     }
     return next_task;
 }
