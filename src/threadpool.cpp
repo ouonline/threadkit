@@ -1,5 +1,5 @@
 #include "threadkit/threadpool.h"
-#include <thread>
+#include <algorithm>
 using namespace std;
 
 namespace threadkit {
@@ -24,65 +24,97 @@ void JoinableThreadTask::Join() {
 
 /* -------------------------------------------------------------------------- */
 
-void ThreadPool::ThreadFunc(ThreadPool* tp) {
-    auto q = &(tp->m_queue);
+void ThreadPool::ThreadFunc(TaskQueue* q) {
     while (true) {
         auto task = q->Pop();
         if (!task) {
-            tp->m_thread_lock.lock();
-            --tp->m_thread_num;
-            if (tp->m_thread_num == 0) {
-                tp->m_thread_cond.notify_one();
-            }
-            tp->m_thread_lock.unlock();
             break;
         }
-
         do {
             task = task->Run();
         } while (task);
     }
 }
 
-void ThreadPool::DoAddTask(const shared_ptr<ThreadTask>& task) {
-    m_queue.Push(task);
+bool ThreadPool::Init(uint32_t thread_num, bool share_task_queue) {
+    if (thread_num == 0) {
+        thread_num = std::max(std::thread::hardware_concurrency(), 1u);
+    }
+
+    if (share_task_queue) {
+        m_queue_list = (TaskQueue*)malloc(sizeof(TaskQueue));
+        if (!m_queue_list) {
+            return false;
+        }
+        new (m_queue_list) TaskQueue();
+        m_queue_num = 1;
+    } else {
+        m_queue_list = (TaskQueue*)malloc(thread_num * sizeof(TaskQueue));
+        if (!m_queue_list) {
+            return false;
+        }
+        for (uint32_t i = 0; i < thread_num; ++i) {
+            new (m_queue_list + i) TaskQueue();
+        }
+        m_queue_num = thread_num;
+    }
+
+    m_thread_list = (std::thread*)malloc(thread_num * sizeof(std::thread));
+    if (!m_thread_list) {
+        for (uint32_t i = 0; i < m_queue_num; ++i) {
+            m_queue_list[i].~TaskQueue();
+        }
+        free(m_queue_list);
+        return false;
+    }
+
+    for (uint32_t i = 0; i < thread_num; ++i) {
+        if (share_task_queue) {
+            new (m_thread_list + i) std::thread(ThreadFunc, m_queue_list);
+        } else {
+            new (m_thread_list + i) std::thread(ThreadFunc, m_queue_list + i);
+        }
+    }
+    m_thread_num = thread_num;
+
+    return true;
 }
 
-void ThreadPool::AddTask(const shared_ptr<ThreadTask>& task) {
-    if (task) {
-        DoAddTask(task);
-    }
-}
-
-void ThreadPool::AddThread(unsigned int num) {
-    for (unsigned int i = 0; i < num; ++i) {
-        std::thread t(ThreadFunc, this);
-        t.detach();
-        m_thread_lock.lock();
-        ++m_thread_num;
-        m_thread_lock.unlock();
-    }
-}
-
-void ThreadPool::DelThread(unsigned int num) {
-    if (num > m_thread_num) {
-        num = m_thread_num;
+bool ThreadPool::AddTask(const shared_ptr<ThreadTask>& task, uint32_t queue_idx) {
+    if (!task) {
+        return false;
     }
 
-    shared_ptr<ThreadTask> dummy_task;
-    for (unsigned int i = 0; i < num; ++i) {
-        DoAddTask(dummy_task);
-    }
+    m_queue_list[queue_idx].Push(task);
+    return true;
 }
 
 ThreadPool::~ThreadPool() {
-    DelThread(m_thread_num);
+    if (!m_thread_list) {
+        return;
+    }
 
-    // waiting for remaining task(s) to complete
-    std::unique_lock<std::mutex> lck(m_thread_lock);
-    m_thread_cond.wait(lck, [this]() -> bool {
-        return (m_thread_num == 0);
-    });
+    shared_ptr<ThreadTask> dummy_task;
+    if (m_queue_num == m_thread_num) {
+        for (uint32_t i = 0; i < m_queue_num; ++i) {
+            m_queue_list[i].Push(dummy_task);
+        }
+    } else {
+        for (uint32_t i = 0; i < m_thread_num; ++i) {
+            m_queue_list[0].Push(dummy_task);
+        }
+    }
+
+    for (uint32_t i = 0; i < m_thread_num; ++i) {
+        m_thread_list[i].join();
+        m_thread_list[i].~thread();
+    }
+    free(m_thread_list);
+
+    for (uint32_t i = 0; i < m_queue_num; ++i) {
+        m_queue_list[i].~TaskQueue();
+    }
+    free(m_queue_list);
 }
 
 }

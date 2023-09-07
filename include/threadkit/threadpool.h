@@ -2,6 +2,8 @@
 #define __THREADKIT_THREADPOOL_H__
 
 #include "queue.h"
+#include <stdint.h>
+#include <thread>
 #include <memory>
 
 /* ------------------------------------------------------------------------- */
@@ -45,28 +47,27 @@ private:
 
 class ThreadPool final {
 public:
-    ThreadPool() : m_thread_num(0) {}
+    ThreadPool() {}
     ~ThreadPool();
 
-    void AddTask(const std::shared_ptr<ThreadTask>&);
-
-    unsigned int GetThreadNum() const { return m_thread_num; }
-    unsigned int GetPendingTaskNum() const { return m_queue.Size(); }
-
-    void AddThread(unsigned int num);
-    void DelThread(unsigned int num);
-
-private:
-    void DoAddTask(const std::shared_ptr<ThreadTask>&);
+    /**
+       Only queue index 0 is available if `share_task_queue` is true,
+       otherwise each thread has its own task queue.
+    */
+    bool Init(uint32_t thread_num = 0, bool share_task_queue = true);
+    bool AddTask(const std::shared_ptr<ThreadTask>& task, uint32_t queue_idx = 0);
 
 private:
-    static void ThreadFunc(ThreadPool*);
+    typedef Queue<std::shared_ptr<ThreadTask>> TaskQueue;
 
 private:
-    unsigned int m_thread_num;
-    std::mutex m_thread_lock;
-    std::condition_variable m_thread_cond;
-    Queue<std::shared_ptr<ThreadTask>> m_queue;
+    static void ThreadFunc(TaskQueue*);
+
+private:
+    uint32_t m_thread_num = 0;
+    uint32_t m_queue_num = 0;
+    std::thread* m_thread_list = nullptr;
+    TaskQueue* m_queue_list = nullptr;
 
 private:
     ThreadPool(const ThreadPool&) = delete;

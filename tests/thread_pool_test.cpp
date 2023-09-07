@@ -1,5 +1,4 @@
 #include <iostream>
-#include <thread>
 #include <chrono>
 using namespace std;
 
@@ -7,7 +6,6 @@ using namespace std;
 using namespace threadkit;
 
 class TestThreadTask : public JoinableThreadTask {
-
 public:
     TestThreadTask(const string& msg) {
         m_is_finished = false;
@@ -29,24 +27,15 @@ private:
     string m_msg;
 };
 
-static inline void EmptyDeleter(ThreadTask*) {}
+static void EmptyDeleter(ThreadTask*) {}
 
 int main(void) {
     ThreadPool tp;
 
-    tp.AddThread(8);
+    tp.Init(8);
 
     TestThreadTask task("Hello, world!");
     tp.AddTask(shared_ptr<ThreadTask>(&task, EmptyDeleter));
-
-    tp.DelThread(2);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    cout << "thread num = " << tp.GetThreadNum() << endl;
-
-    tp.AddThread(5);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    cout << "thread num = " << tp.GetThreadNum() << endl;
-
     task.Join();
 
     return 0;

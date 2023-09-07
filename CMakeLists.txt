@@ -5,6 +5,11 @@ project(threadkit)
 
 option(THREADKIT_BUILD_TESTS "build tests" ON)
 option(THREADKIT_INSTALL "install headers and libs" ON)
+option(THREADKIT_HOLD_DEPS "do not update existing deps" OFF)
+
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 14)
+endif()
 
 # ----- targets ----- #
 
@@ -13,7 +18,6 @@ add_library(threadkit_static STATIC ${__THREADKIT_SRC__})
 unset(__THREADKIT_SRC__)
 
 target_include_directories(threadkit_static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_features(threadkit_static PUBLIC cxx_std_11)
 
 if(MSVC)
     target_compile_options(threadkit_static PRIVATE /W4)
