@@ -1,42 +1,74 @@
 #include <iostream>
-#include <chrono>
+#include <string>
 using namespace std;
 
 #include "threadkit/threadpool.h"
 using namespace threadkit;
 
-class TestThreadTask : public JoinableThreadTask {
+class JoinableTask final : public ThreadTask {
 public:
-    TestThreadTask(const string& msg) {
-        m_is_finished = false;
-        m_msg = msg;
-    }
-
-protected:
-    shared_ptr<ThreadTask> Process() override {
+    JoinableTask(const string& msg, Event* event) : m_msg(msg), m_event(event) {}
+    shared_ptr<ThreadTask> Run() override {
         cout << "tid[" << std::this_thread::get_id() << "], msg -> " << m_msg << endl;
-        m_is_finished = true;
+        m_event->Finish();
         return shared_ptr<ThreadTask>();
-    }
-    bool IsFinished() const override {
-        return m_is_finished;
     }
 
 private:
-    bool m_is_finished;
     string m_msg;
+    Event* m_event;
 };
 
 static void EmptyDeleter(ThreadTask*) {}
 
-int main(void) {
+static void test_task(void) {
     ThreadPool tp;
+    tp.Init(2);
 
-    tp.Init(8);
-
-    TestThreadTask task("Hello, world!");
+    Event event(1);
+    JoinableTask task("Hello, world!", &event);
     tp.AddTask(shared_ptr<ThreadTask>(&task, EmptyDeleter));
-    task.Join();
+    event.Wait();
+}
+
+#define N 2
+
+static void test_async(void) {
+    FixedThreadPool tp;
+    tp.Init(N);
+
+    Event event(N);
+    tp.ParallelRunAsync([&event](uint32_t thread_idx) -> void {
+        cout << "thread [" << thread_idx << "] finished." << endl;
+        event.Finish();
+    });
+    event.Wait();
+}
+
+static void test_sync(void) {
+    FixedThreadPool tp;
+    tp.Init(N);
+
+    tp.ParallelRun([](uint32_t thread_idx) -> void {
+        cout << "thread [" << thread_idx << "] finished." << endl;
+    });
+}
+
+struct {
+    const char* name;
+    void (*func)(void);
+} g_test_suite[] = {
+    {"task", test_task},
+    {"async", test_async},
+    {"sync", test_sync},
+    {nullptr, nullptr},
+};
+
+int main(void) {
+    for (uint32_t i = 0; g_test_suite[i].name; ++i) {
+        cout << "----- " << g_test_suite[i].name << " -----" << endl;
+        g_test_suite[i].func();
+    }
 
     return 0;
 }

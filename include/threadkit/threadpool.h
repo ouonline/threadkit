@@ -2,11 +2,13 @@
 #define __THREADKIT_THREADPOOL_H__
 
 #include "queue.h"
+#include "barrier.h"
+#include "event.h"
 #include <stdint.h>
 #include <thread>
+#include <vector>
 #include <memory>
-
-/* ------------------------------------------------------------------------- */
+#include <functional>
 
 namespace threadkit {
 
@@ -20,60 +22,51 @@ public:
     virtual std::shared_ptr<ThreadTask> Run() = 0;
 };
 
-class JoinableThreadTask : public ThreadTask {
-public:
-    std::shared_ptr<ThreadTask> Run() override final;
-    void Join();
-
-protected:
-    JoinableThreadTask() {}
-    virtual ~JoinableThreadTask() {}
-
-    virtual bool IsFinished() const = 0;
-    virtual std::shared_ptr<ThreadTask> Process() = 0;
-
-private:
-    std::mutex m_mutex;
-    std::condition_variable m_cond;
-
-private:
-    JoinableThreadTask(const JoinableThreadTask&) = delete;
-    JoinableThreadTask(JoinableThreadTask&&) = delete;
-    void operator=(const JoinableThreadTask&) = delete;
-    void operator=(JoinableThreadTask&&) = delete;
-};
-
-/* ------------------------------------------------------------------------- */
-
 class ThreadPool final {
 public:
-    ThreadPool() {}
-    ~ThreadPool();
+    ~ThreadPool() {
+        Destroy();
+    }
 
-    /**
-       Only queue index 0 is available if `share_task_queue` is true,
-       otherwise each thread has its own task queue.
-    */
-    bool Init(uint32_t thread_num = 0, bool share_task_queue = true);
-    bool AddTask(const std::shared_ptr<ThreadTask>& task, uint32_t queue_idx = 0);
+    bool Init(uint32_t thread_num = 0);
+    void Destroy();
 
-private:
-    typedef Queue<std::shared_ptr<ThreadTask>> TaskQueue;
+    bool AddTask(const std::shared_ptr<ThreadTask>& task);
 
 private:
-    static void ThreadFunc(TaskQueue*);
+    static void ThreadFunc(Queue<std::shared_ptr<ThreadTask>>*);
 
 private:
-    uint32_t m_thread_num = 0;
-    uint32_t m_queue_num = 0;
-    std::thread* m_thread_list = nullptr;
-    TaskQueue* m_queue_list = nullptr;
+    Queue<std::shared_ptr<ThreadTask>> m_queue;
+    std::vector<std::thread> m_thread_list;
+};
+
+class FixedThreadPool final {
+public:
+    ~FixedThreadPool() {
+        Destroy();
+    }
+
+    bool Init(uint32_t thread_num = 0);
+    void Destroy();
+
+    uint32_t GetThreadNum() const {
+        return m_thread_list.size();
+    }
+
+    void ParallelRun(const std::function<void(uint32_t thread_idx)>&);
+
+    /** Caller MUST make sure that last tasks are finished before starting another new call. */
+    void ParallelRunAsync(const std::function<void(uint32_t thread_idx)>&);
 
 private:
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool(ThreadPool&&) = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
-    ThreadPool& operator=(ThreadPool&&) = delete;
+    static void ThreadFunc(uint32_t, Barrier*, const std::function<void(uint32_t)>*);
+
+private:
+    std::function<void(uint32_t)> m_func;
+    Barrier m_start_barrier;
+    Event m_sync_event;
+    std::vector<std::thread> m_thread_list;
 };
 
 }

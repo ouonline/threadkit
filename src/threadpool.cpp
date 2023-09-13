@@ -4,27 +4,7 @@ using namespace std;
 
 namespace threadkit {
 
-shared_ptr<ThreadTask> JoinableThreadTask::Run() {
-    shared_ptr<ThreadTask> next_task;
-    if (!IsFinished()) {
-        m_mutex.lock();
-        next_task = Process();
-        m_cond.notify_one();
-        m_mutex.unlock();
-    }
-    return next_task;
-}
-
-void JoinableThreadTask::Join() {
-    std::unique_lock<std::mutex> lck(m_mutex);
-    m_cond.wait(lck, [this]() -> bool {
-        return IsFinished();
-    });
-}
-
-/* -------------------------------------------------------------------------- */
-
-void ThreadPool::ThreadFunc(TaskQueue* q) {
+void ThreadPool::ThreadFunc(Queue<shared_ptr<ThreadTask>>* q) {
     while (true) {
         auto task = q->Pop();
         if (!task) {
@@ -36,85 +16,96 @@ void ThreadPool::ThreadFunc(TaskQueue* q) {
     }
 }
 
-bool ThreadPool::Init(uint32_t thread_num, bool share_task_queue) {
+bool ThreadPool::Init(uint32_t thread_num) {
     if (thread_num == 0) {
-        thread_num = std::max(std::thread::hardware_concurrency(), 1u);
+        thread_num = std::max(std::thread::hardware_concurrency(), 2u) - 1;
     }
 
-    if (share_task_queue) {
-        m_queue_list = (TaskQueue*)malloc(sizeof(TaskQueue));
-        if (!m_queue_list) {
-            return false;
-        }
-        new (m_queue_list) TaskQueue();
-        m_queue_num = 1;
-    } else {
-        m_queue_list = (TaskQueue*)malloc(thread_num * sizeof(TaskQueue));
-        if (!m_queue_list) {
-            return false;
-        }
-        for (uint32_t i = 0; i < thread_num; ++i) {
-            new (m_queue_list + i) TaskQueue();
-        }
-        m_queue_num = thread_num;
-    }
-
-    m_thread_list = (std::thread*)malloc(thread_num * sizeof(std::thread));
-    if (!m_thread_list) {
-        for (uint32_t i = 0; i < m_queue_num; ++i) {
-            m_queue_list[i].~TaskQueue();
-        }
-        free(m_queue_list);
-        return false;
-    }
-
+    m_thread_list.reserve(thread_num);
     for (uint32_t i = 0; i < thread_num; ++i) {
-        if (share_task_queue) {
-            new (m_thread_list + i) std::thread(ThreadFunc, m_queue_list);
-        } else {
-            new (m_thread_list + i) std::thread(ThreadFunc, m_queue_list + i);
-        }
+        m_thread_list.emplace_back(std::thread(ThreadFunc, &m_queue));
     }
-    m_thread_num = thread_num;
 
     return true;
 }
 
-bool ThreadPool::AddTask(const shared_ptr<ThreadTask>& task, uint32_t queue_idx) {
+bool ThreadPool::AddTask(const shared_ptr<ThreadTask>& task) {
     if (!task) {
         return false;
     }
 
-    m_queue_list[queue_idx].Push(task);
+    m_queue.Push(task);
     return true;
 }
 
-ThreadPool::~ThreadPool() {
-    if (!m_thread_list) {
-        return;
-    }
-
-    shared_ptr<ThreadTask> dummy_task;
-    if (m_queue_num == m_thread_num) {
-        for (uint32_t i = 0; i < m_queue_num; ++i) {
-            m_queue_list[i].Push(dummy_task);
+void ThreadPool::Destroy() {
+    if (!m_thread_list.empty()) {
+        shared_ptr<ThreadTask> dummy_task;
+        for (uint32_t i = 0; i < m_thread_list.size(); ++i) {
+            m_queue.Push(dummy_task);
         }
-    } else {
-        for (uint32_t i = 0; i < m_thread_num; ++i) {
-            m_queue_list[0].Push(dummy_task);
+        for (uint32_t i = 0; i < m_thread_list.size(); ++i) {
+            m_thread_list[i].join();
         }
+        m_thread_list.clear();
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+
+bool FixedThreadPool::Init(uint32_t thread_num) {
+    if (thread_num == 0) {
+        thread_num = std::max(std::thread::hardware_concurrency(), 2u) - 1;
     }
 
-    for (uint32_t i = 0; i < m_thread_num; ++i) {
-        m_thread_list[i].join();
-        m_thread_list[i].~thread();
-    }
-    free(m_thread_list);
+    m_sync_event.ResetMaxCount(thread_num);
+    m_start_barrier.ResetMaxCount(thread_num + 1);
 
-    for (uint32_t i = 0; i < m_queue_num; ++i) {
-        m_queue_list[i].~TaskQueue();
+    m_thread_list.reserve(thread_num);
+    for (uint32_t i = 0; i < thread_num; ++i) {
+        m_thread_list.emplace_back(std::thread(ThreadFunc, i, &m_start_barrier, &m_func));
     }
-    free(m_queue_list);
+
+    return true;
+}
+
+void FixedThreadPool::Destroy() {
+    if (!m_thread_list.empty()) {
+        m_func = nullptr;
+        m_start_barrier.Wait();
+        for (uint32_t i = 0; i < m_thread_list.size(); ++i) {
+            m_thread_list[i].join();
+        }
+        m_thread_list.clear();
+    }
+}
+
+void FixedThreadPool::ThreadFunc(uint32_t thread_idx, Barrier* barrier, const function<void(uint32_t)>* func) {
+    while (true) {
+        barrier->Wait();
+        if (!(*func)) {
+            break;
+        }
+        (*func)(thread_idx);
+    }
+}
+
+void FixedThreadPool::ParallelRunAsync(const function<void(uint32_t)>& f) {
+    if (f) {
+        m_func = f;
+        m_start_barrier.Wait();
+    }
+}
+
+void FixedThreadPool::ParallelRun(const function<void(uint32_t)>& f) {
+    if (f) {
+        m_func = [this, &f](uint32_t thread_idx) -> void {
+            f(thread_idx);
+            m_sync_event.Finish();
+        };
+        m_start_barrier.Wait();
+        m_sync_event.Wait();
+    }
 }
 
 }
