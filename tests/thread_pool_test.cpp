@@ -8,7 +8,7 @@ using namespace threadkit;
 class JoinableTask final : public ThreadTask {
 public:
     JoinableTask(const string& msg, Event* event) : m_msg(msg), m_event(event) {}
-    shared_ptr<ThreadTask> Run() override {
+    shared_ptr<ThreadTask> Run(uint32_t) override {
         cout << "tid[" << std::this_thread::get_id() << "], msg -> " << m_msg << endl;
         m_event->Finish();
         return shared_ptr<ThreadTask>();

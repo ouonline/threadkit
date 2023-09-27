@@ -16,10 +16,11 @@ class ThreadTask {
 public:
     virtual ~ThreadTask() {}
     /**
-       returns a task that will be executed right after Run() returns,
-       or nullptr to pick up the next item from task queue.
+       @brief returns a task that will be executed right after Run() returns,
+       or nullptr to pick up a task from task queue.
+       @param thread_idx 0 <= thread_idx < number of threads
     */
-    virtual std::shared_ptr<ThreadTask> Run() = 0;
+    virtual std::shared_ptr<ThreadTask> Run(uint32_t thread_idx) = 0;
 };
 
 class ThreadPool final {
@@ -31,10 +32,14 @@ public:
     bool Init(uint32_t thread_num = 0);
     void Destroy();
 
+    uint32_t GetThreadNum() const {
+        return m_thread_list.size();
+    }
+
     bool AddTask(const std::shared_ptr<ThreadTask>& task);
 
 private:
-    static void ThreadFunc(Queue<std::shared_ptr<ThreadTask>>*);
+    static void ThreadFunc(uint32_t, Queue<std::shared_ptr<ThreadTask>>*);
 
 private:
     Queue<std::shared_ptr<ThreadTask>> m_queue;

@@ -4,14 +4,14 @@ using namespace std;
 
 namespace threadkit {
 
-void ThreadPool::ThreadFunc(Queue<shared_ptr<ThreadTask>>* q) {
+void ThreadPool::ThreadFunc(uint32_t thread_idx, Queue<shared_ptr<ThreadTask>>* q) {
     while (true) {
         auto task = q->Pop();
         if (!task) {
             break;
         }
         do {
-            task = task->Run();
+            task = task->Run(thread_idx);
         } while (task);
     }
 }
@@ -23,7 +23,7 @@ bool ThreadPool::Init(uint32_t thread_num) {
 
     m_thread_list.reserve(thread_num);
     for (uint32_t i = 0; i < thread_num; ++i) {
-        m_thread_list.emplace_back(std::thread(ThreadFunc, &m_queue));
+        m_thread_list.emplace_back(std::thread(ThreadFunc, i, &m_queue));
     }
 
     return true;
