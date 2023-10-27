@@ -21,7 +21,7 @@ private:
 
 static void EmptyDeleter(ThreadTask*) {}
 
-static void test_task(void) {
+static void TestTask(void) {
     ThreadPool tp;
     tp.Init(2);
 
@@ -33,7 +33,7 @@ static void test_task(void) {
 
 #define N 2
 
-static void test_async(void) {
+static void TestAsync(void) {
     FixedThreadPool tp;
     tp.Init(N);
 
@@ -45,7 +45,7 @@ static void test_async(void) {
     event.Wait();
 }
 
-static void test_sync(void) {
+static void TestSync(void) {
     FixedThreadPool tp;
     tp.Init(N);
 
@@ -58,9 +58,9 @@ struct {
     const char* name;
     void (*func)(void);
 } g_test_suite[] = {
-    {"task", test_task},
-    {"async", test_async},
-    {"sync", test_sync},
+    {"task", TestTask},
+    {"async", TestAsync},
+    {"sync", TestSync},
     {nullptr, nullptr},
 };
 
