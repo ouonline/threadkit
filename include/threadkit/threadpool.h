@@ -3,8 +3,6 @@
 
 #include "queue.h"
 #include "barrier.h"
-#include "event.h"
-#include <stdint.h>
 #include <thread>
 #include <vector>
 #include <memory>
@@ -70,7 +68,6 @@ private:
 private:
     std::function<void(uint32_t)> m_func;
     Barrier m_start_barrier;
-    Event m_sync_event;
     std::vector<std::thread> m_thread_list;
 };
 

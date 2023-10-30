@@ -1,4 +1,6 @@
 #include "threadkit/threadpool.h"
+#include "threadkit/event_count.h"
+#include <atomic>
 #include <algorithm>
 using namespace std;
 
@@ -58,7 +60,6 @@ bool FixedThreadPool::Init(uint32_t thread_num) {
         thread_num = std::max(std::thread::hardware_concurrency(), 2u) - 1;
     }
 
-    m_sync_event.ResetMaxCount(thread_num);
     m_start_barrier.ResetMaxCount(thread_num + 1);
 
     m_thread_list.reserve(thread_num);
@@ -99,12 +100,22 @@ void FixedThreadPool::ParallelRunAsync(const function<void(uint32_t)>& f) {
 
 void FixedThreadPool::ParallelRun(const function<void(uint32_t)>& f) {
     if (f) {
-        m_func = [this, &f](uint32_t thread_idx) -> void {
+        EventCount cond;
+        atomic<uint32_t> nr_finished(0);
+        auto nr_thread = m_thread_list.size();
+
+        m_func = [&nr_finished, nr_thread, &cond, &f](uint32_t thread_idx) -> void {
             f(thread_idx);
-            m_sync_event.Finish();
+            auto count = nr_finished.fetch_add(1, std::memory_order_acq_rel) + 1;
+            if (count >= nr_thread) {
+                cond.NotifyOne();
+            }
         };
         m_start_barrier.Wait();
-        m_sync_event.Wait();
+
+        cond.Wait([nr_thread, &nr_finished]() -> bool {
+            return (nr_finished.load(std::memory_order_acquire) >= nr_thread);
+        });
     }
 }
 

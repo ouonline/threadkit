@@ -1,22 +1,30 @@
 #include <iostream>
 #include <string>
+#include <atomic>
 using namespace std;
 
+#include "threadkit/event_count.h"
 #include "threadkit/threadpool.h"
 using namespace threadkit;
 
 class JoinableTask final : public ThreadTask {
 public:
-    JoinableTask(const string& msg, Event* event) : m_msg(msg), m_event(event) {}
+    JoinableTask(const string& msg, atomic<uint32_t>* nr_finished, uint32_t expected, EventCount* cond)
+        : m_expected(expected), m_msg(msg), m_nr_finished(nr_finished), m_cond(cond) {}
     shared_ptr<ThreadTask> Run(uint32_t) override {
-        cout << "tid[" << std::this_thread::get_id() << "], msg -> " << m_msg << endl;
-        m_event->Finish();
+        cout << "tid [" << std::this_thread::get_id() << "], msg -> " << m_msg << endl;
+        auto count = m_nr_finished->fetch_add(1, std::memory_order_acq_rel) + 1;
+        if (count >= m_expected) {
+            m_cond->NotifyOne();
+        }
         return shared_ptr<ThreadTask>();
     }
 
 private:
+    const uint32_t m_expected;
     string m_msg;
-    Event* m_event;
+    atomic<uint32_t>* m_nr_finished;
+    EventCount* m_cond;
 };
 
 static void EmptyDeleter(ThreadTask*) {}
@@ -25,10 +33,13 @@ static void TestTask(void) {
     ThreadPool tp;
     tp.Init(2);
 
-    Event event(1);
-    JoinableTask task("Hello, world!", &event);
+    EventCount cond;
+    atomic<uint32_t> nr_finished(0);
+    JoinableTask task("Hello, world!", &nr_finished, 1, &cond);
     tp.AddTask(shared_ptr<ThreadTask>(&task, EmptyDeleter));
-    event.Wait();
+    cond.Wait([&nr_finished]() -> bool {
+        return (nr_finished.load(std::memory_order_acquire) >= 1);
+    });
 }
 
 #define N 2
@@ -37,12 +48,16 @@ static void TestAsync(void) {
     FixedThreadPool tp;
     tp.Init(N);
 
-    Event event(N);
-    tp.ParallelRunAsync([&event](uint32_t thread_idx) -> void {
+    EventCount cond;
+    atomic<uint32_t> nr_finished(0);
+    tp.ParallelRunAsync([&nr_finished, &cond](uint32_t thread_idx) -> void {
         cout << "thread [" << thread_idx << "] finished." << endl;
-        event.Finish();
+        nr_finished.fetch_add(1, std::memory_order_acq_rel);
+        cond.NotifyOne();
     });
-    event.Wait();
+    cond.Wait([&nr_finished]() -> bool {
+        return (nr_finished.load(std::memory_order_acquire) >= N);
+    });
 }
 
 static void TestSync(void) {
