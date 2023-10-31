@@ -1,8 +1,8 @@
 #ifndef __THREADKIT_BARRIER_H__
 #define __THREADKIT_BARRIER_H__
 
-#include <mutex>
-#include <condition_variable>
+#include "event_count.h"
+#include <atomic>
 
 namespace threadkit {
 
@@ -13,23 +13,24 @@ public:
         m_max_count = max_count;
     }
     void Wait() {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        if (m_counter < m_max_count) {
-            ++m_counter;
-            if (m_counter < m_max_count) {
-                m_cond.wait(lock);
+        auto counter = m_counter.load(std::memory_order_acquire);
+        if (counter < m_max_count) {
+            auto key = m_cond.PrepareWait();
+            counter = m_counter.fetch_add(1, std::memory_order_acq_rel) + 1;
+            if (counter < m_max_count) {
+                m_cond.CommitWait(key);
             } else {
-                m_counter = 0;
-                m_cond.notify_all();
+                m_cond.CancelWait();
+                m_cond.NotifyAll();
+                m_counter.store(0, std::memory_order_release);
             }
         }
     }
 
 private:
     uint32_t m_max_count;
-    uint32_t m_counter;
-    std::mutex m_mutex;
-    std::condition_variable m_cond;
+    std::atomic<uint32_t> m_counter;
+    EventCount m_cond;
 };
 
 }
