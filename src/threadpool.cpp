@@ -6,7 +6,7 @@ using namespace std;
 
 namespace threadkit {
 
-void ThreadPool::ThreadFunc(uint32_t thread_idx, Queue<shared_ptr<ThreadTask>>* q) {
+void ThreadPool::ThreadFunc(uint32_t thread_idx, MPMCBlockingQueue<shared_ptr<ThreadTask>>* q) {
     while (true) {
         auto task = q->Pop();
         if (!task) {

@@ -1,7 +1,7 @@
 #ifndef __THREADKIT_THREADPOOL_H__
 #define __THREADKIT_THREADPOOL_H__
 
-#include "queue.h"
+#include "mpmc_blocking_queue.h"
 #include "barrier.h"
 #include <thread>
 #include <vector>
@@ -37,10 +37,10 @@ public:
     bool AddTask(const std::shared_ptr<ThreadTask>& task);
 
 private:
-    static void ThreadFunc(uint32_t, Queue<std::shared_ptr<ThreadTask>>*);
+    static void ThreadFunc(uint32_t, MPMCBlockingQueue<std::shared_ptr<ThreadTask>>*);
 
 private:
-    Queue<std::shared_ptr<ThreadTask>> m_queue;
+    MPMCBlockingQueue<std::shared_ptr<ThreadTask>> m_queue;
     std::vector<std::thread> m_thread_list;
 };
 

@@ -1,5 +1,5 @@
-#ifndef __THREADKIT_QUEUE_H__
-#define __THREADKIT_QUEUE_H__
+#ifndef __THREADKIT_MPMC_BLOCKING_QUEUE_H__
+#define __THREADKIT_MPMC_BLOCKING_QUEUE_H__
 
 #include <mutex>
 #include <condition_variable>
@@ -8,20 +8,20 @@
 namespace threadkit {
 
 template <typename T>
-class Queue final {
+class MPMCBlockingQueue final {
 public:
     void Push(const T& item) {
         m_mutex.lock();
         m_items.push_back(item);
-        m_mutex.unlock();
         m_cond.notify_one();
+        m_mutex.unlock();
     }
 
     void Push(T&& item) {
         m_mutex.lock();
         m_items.emplace_back(std::move(item));
-        m_mutex.unlock();
         m_cond.notify_one();
+        m_mutex.unlock();
     }
 
     T Pop() {
