@@ -4,19 +4,8 @@ using namespace std;
 using namespace threadkit;
 
 #undef NDEBUG
+#include "utils.h"
 #include <assert.h>
-
-#ifdef _MSC_VER
-#include <windows.h>
-static void SleepSec(int sec) {
-    Sleep(sec * 1000);
-}
-#else
-#include <unistd.h>
-static void SleepSec(int sec) {
-    sleep(sec);
-}
-#endif
 
 #include <thread>
 #include <vector>
