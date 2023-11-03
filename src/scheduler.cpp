@@ -7,11 +7,11 @@ using namespace std;
 namespace threadkit {
 
 void Scheduler::DoMove(Scheduler&& s) {
-    m_push_idx = s.m_push_idx;
+    m_push_idx.store(s.m_push_idx.load(std::memory_order_relaxed), std::memory_order_relaxed);
     m_num = s.m_num;
     m_info_list = s.m_info_list;
 
-    s.m_push_idx = 0;
+    s.m_push_idx.store(0, std::memory_order_relaxed);
     s.m_num = 0;
     s.m_info_list = nullptr;
 }
@@ -38,20 +38,15 @@ bool Scheduler::Init(uint32_t num) {
     for (uint32_t i = 0; i < num; ++i) {
         new (m_info_list + i) Info();
     }
+
     m_num = num;
+    m_active = true;
 
     return true;
 }
 
 void Scheduler::Destroy() {
     if (m_info_list) {
-        for (uint32_t i = 0; i < m_num; ++i) {
-            auto maybe_empty = m_info_list[i].queue.Push(&m_info_list[i].dummy);
-            if (maybe_empty) {
-                m_info_list[i].queue_size.fetch_add(1, std::memory_order_acq_rel);
-                m_info_list[i].cond.NotifyOne();
-            }
-        }
         for (uint32_t i = 0; i < m_num; ++i) {
             m_info_list[i].~Info();
         }
@@ -102,7 +97,14 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
 
 retry:
     node = queue->Pop(&is_empty);
-    if (is_empty) {
+    if (!node) {
+        if (!is_empty) {
+            goto retry;
+        }
+        if (!m_active) {
+            return nullptr;
+        }
+
         auto key = cond->PrepareWait();
         node = queue->Pop(&is_empty);
         if (is_empty) {
@@ -113,8 +115,6 @@ retry:
             cond->CancelWait();
             goto retry;
         }
-    } else if (!node) { // inserting
-        goto retry;
     }
 
     auto nr_req = info->queue_size.fetch_sub(1, std::memory_order_acq_rel) / 2;
@@ -122,39 +122,25 @@ retry:
         auto steal_idx = info->req_idx.load(std::memory_order_relaxed);
         if (steal_idx != UINT32_MAX) {
             auto steal_info = &m_info_list[steal_idx];
-
-            uint32_t nr_req_stolen = 0;
-            for (; nr_req_stolen < nr_req; ++nr_req_stolen) {
-                MPSCQueue::Node* req = queue->Pop(&is_empty);
-                if (unlikely(req == &info->dummy)) {
-                    queue->Push(req); // last dummy node to terminate the thread
-                    break;
-                }
-                steal_info->queue.Push(req);
+            for (uint32_t i = 0; i < nr_req; ++i) {
+                steal_info->queue.Push(queue->Pop(&is_empty));
             }
 
-            if (likely(nr_req_stolen > 0)) {
-                steal_info->queue_size.fetch_add(nr_req_stolen, std::memory_order_acq_rel);
-                steal_info->cond.NotifyAll();
-                info->queue_size.fetch_sub(nr_req_stolen, std::memory_order_relaxed);
-            }
-
+            steal_info->queue_size.fetch_add(nr_req, std::memory_order_acq_rel);
+            steal_info->cond.NotifyAll();
+            info->queue_size.fetch_sub(nr_req, std::memory_order_relaxed);
             info->req_idx.store(UINT32_MAX, std::memory_order_release);
         }
     }
 
-    if (node == &info->dummy) {
-        if (info->queue_size.load(std::memory_order_relaxed) == 0) {
-            return nullptr;
-        }
-
-        // push the dummy node to the end of queue to make sure that all tasks will be processed
-        info->queue.Push(node);
-        info->queue_size.fetch_add(1, std::memory_order_release);
-        goto retry;
-    }
-
     return node;
+}
+
+void Scheduler::Stop() {
+    m_active = false;
+    for (uint32_t i = 0; i < m_num; ++i) {
+        m_info_list[i].cond.NotifyAll();
+    }
 }
 
 }

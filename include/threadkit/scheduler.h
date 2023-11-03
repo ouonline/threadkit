@@ -8,7 +8,7 @@ namespace threadkit {
 
 class Scheduler final {
 public:
-    Scheduler() : m_push_idx(0), m_num(0), m_info_list(nullptr) {}
+    Scheduler() : m_active(false), m_push_idx(0), m_num(0), m_info_list(nullptr) {}
 
     Scheduler(Scheduler&&);
     void operator=(Scheduler&&);
@@ -27,15 +27,17 @@ public:
     void Push(MPSCQueue::Node* node, uint32_t prefer_idx);
 
     void Push(MPSCQueue::Node* node) {
-        Push(node, m_push_idx);
-        m_push_idx = (m_push_idx + 1) % m_num;
+        auto idx = m_push_idx.fetch_add(1, std::memory_order_acquire) % m_num;
+        Push(node, idx);
     }
 
     // blocks if queue is empty. returns nullptr for dummy node.
     MPSCQueue::Node* Pop(uint32_t idx);
 
-    void PushDummy(uint32_t idx) {
-        Push(&m_info_list[idx].dummy, idx);
+    void Stop();
+
+    bool IsActive() const {
+        return m_active;
     }
 
 private:
@@ -50,11 +52,11 @@ private:
         EventCount cond;
         std::atomic<uint32_t> queue_size;
         std::atomic<uint32_t> req_idx; // which thread is asking for tasks
-        MPSCQueue::Node dummy;
     };
 
 private:
-    uint32_t m_push_idx;
+    bool m_active;
+    std::atomic<uint32_t> m_push_idx;
     uint32_t m_num;
     Info* m_info_list;
 

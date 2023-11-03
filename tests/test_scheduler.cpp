@@ -101,21 +101,6 @@ static void TestStealReq() {
 
 #undef N
 
-static void TestReqAfterDummy() {
-    Scheduler sched;
-    assert(sched.Init(1));
-
-    MPSCQueue::Node node;
-    sched.PushDummy(0);
-    sched.Push(&node);
-    assert(sched.m_info_list[0].queue_size.load(std::memory_order_acquire) == 2);
-
-    auto ret_node = sched.Pop(0);
-    assert(ret_node == &node);
-    ret_node = sched.Pop(0);
-    assert(ret_node == nullptr);
-}
-
 static const struct {
     const char* name;
     void (*func)(void);
@@ -123,7 +108,6 @@ static const struct {
     {"TestPush", TestPush},
     {"TestPop", TestPop},
     {"TestStealReq", TestStealReq},
-    {"TestReqAfterDummy", TestReqAfterDummy},
     {nullptr, nullptr},
 };
 

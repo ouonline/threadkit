@@ -48,7 +48,7 @@ bool ThreadPool::Init(uint32_t thread_num) {
 }
 
 bool ThreadPool::AddTask(ThreadTask* task) {
-    if (!task) {
+    if (!m_sched.IsActive()) {
         return false;
     }
     m_sched.Push(task);
@@ -56,7 +56,7 @@ bool ThreadPool::AddTask(ThreadTask* task) {
 }
 
 bool ThreadPool::AddTask(ThreadTask* task, uint32_t prefer_thread_idx) {
-    if (!task) {
+    if (!m_sched.IsActive()) {
         return false;
     }
     m_sched.Push(task, prefer_thread_idx);
@@ -65,9 +65,7 @@ bool ThreadPool::AddTask(ThreadTask* task, uint32_t prefer_thread_idx) {
 
 void ThreadPool::Destroy() {
     if (!m_thread_list.empty()) {
-        for (uint32_t i = 0; i < m_thread_list.size(); ++i) {
-            m_sched.PushDummy(i);
-        }
+        m_sched.Stop();
         for (auto t = m_thread_list.begin(); t != m_thread_list.end(); ++t) {
             t->join();
         }
