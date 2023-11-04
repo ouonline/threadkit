@@ -13,14 +13,18 @@ public:
     void Push(const T& item) {
         m_mutex.lock();
         m_items.push_back(item);
-        m_cond.notify_one();
+        if (m_items.size() == 1) {
+            m_cond.notify_one();
+        }
         m_mutex.unlock();
     }
 
     void Push(T&& item) {
         m_mutex.lock();
         m_items.emplace_back(std::move(item));
-        m_cond.notify_one();
+        if (m_items.size() == 1) {
+            m_cond.notify_one();
+        }
         m_mutex.unlock();
     }
 

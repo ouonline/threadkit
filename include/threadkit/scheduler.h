@@ -3,6 +3,7 @@
 
 #include "mpsc_queue.h"
 #include "event_count.h"
+#include <pthread.h>
 
 namespace threadkit {
 
@@ -42,16 +43,21 @@ public:
 
 private:
     void DoMove(Scheduler&&);
-    bool AskForReqInRange(uint32_t begin, uint32_t end, uint32_t curr);
-    void AskForReq(uint32_t curr);
+    MPSCQueue::Node* AskForReqInRange(uint32_t begin, uint32_t end);
+    MPSCQueue::Node* AskForReq(uint32_t curr);
 
 private:
     struct Info final {
-        Info() : queue_size(0), req_idx(UINT32_MAX) {}
+        Info() {
+            pthread_mutex_init(&lock, nullptr);
+        }
+        ~Info() {
+            pthread_mutex_destroy(&lock);
+        }
+
         MPSCQueue queue;
         EventCount cond;
-        std::atomic<uint32_t> queue_size;
-        std::atomic<uint32_t> req_idx; // which thread is asking for tasks
+        pthread_mutex_t lock;
     };
 
 private:

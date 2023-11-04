@@ -58,33 +58,33 @@ void Scheduler::Destroy() {
 void Scheduler::Push(MPSCQueue::Node* node, uint32_t idx) {
     auto info = &m_info_list[idx];
     auto maybe_empty = info->queue.Push(node);
-    info->queue_size.fetch_add(1, std::memory_order_acq_rel);
     if (maybe_empty) {
         info->cond.NotifyOne();
     }
 }
 
-bool Scheduler::AskForReqInRange(uint32_t begin, uint32_t end, uint32_t curr) {
+MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
+    bool is_empty;
     for (uint32_t i = begin; i < end; ++i) {
         auto info = &m_info_list[i];
-        if (info->queue_size.load(std::memory_order_relaxed) < 2) {
-            continue;
-        }
-
-        uint32_t expected = UINT32_MAX;
-        if (info->req_idx.compare_exchange_strong(expected, curr, std::memory_order_acq_rel)) {
-            return true;
+        pthread_mutex_lock(&info->lock);
+        auto ret = info->queue.Pop(&is_empty);
+        pthread_mutex_unlock(&info->lock);
+        if (ret) {
+            return ret;
         }
     }
 
-    return false;
+    return nullptr;
 }
 
 // TODO optimize: use bitmap to accerarate lookup or choose one randomly
-void Scheduler::AskForReq(uint32_t curr_idx) {
-    if (!AskForReqInRange(0, curr_idx, curr_idx)) {
-        AskForReqInRange(curr_idx + 1, m_num, curr_idx);
+MPSCQueue::Node* Scheduler::AskForReq(uint32_t curr_idx) {
+    auto ret = AskForReqInRange(0, curr_idx);
+    if (!ret) {
+        ret = AskForReqInRange(curr_idx + 1, m_num);
     }
+    return ret;
 }
 
 MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
@@ -96,41 +96,25 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
     bool is_empty = true;
 
 retry:
-    node = queue->Pop(&is_empty);
+    pthread_mutex_lock(&info->lock);
+    do {
+        node = queue->Pop(&is_empty);
+    } while (!node && !is_empty);
+    pthread_mutex_unlock(&info->lock);
+
+    // is empty
     if (!node) {
-        if (!is_empty) {
-            goto retry;
-        }
         if (!m_active) {
             return nullptr;
         }
 
         auto key = cond->PrepareWait();
-        node = queue->Pop(&is_empty);
-        if (is_empty) {
-            AskForReq(idx);
+        node = AskForReq(idx);
+        if (!node) {
             cond->CommitWait(key);
             goto retry;
-        } else if (!node) { // inserting
-            cond->CancelWait();
-            goto retry;
         }
-    }
-
-    auto nr_req = info->queue_size.fetch_sub(1, std::memory_order_acq_rel) / 2;
-    if (nr_req > 0) {
-        auto steal_idx = info->req_idx.load(std::memory_order_relaxed);
-        if (steal_idx != UINT32_MAX) {
-            auto steal_info = &m_info_list[steal_idx];
-            for (uint32_t i = 0; i < nr_req; ++i) {
-                steal_info->queue.Push(queue->Pop(&is_empty));
-            }
-
-            steal_info->queue_size.fetch_add(nr_req, std::memory_order_acq_rel);
-            steal_info->cond.NotifyAll();
-            info->queue_size.fetch_sub(nr_req, std::memory_order_relaxed);
-            info->req_idx.store(UINT32_MAX, std::memory_order_release);
-        }
+        cond->CancelWait();
     }
 
     return node;

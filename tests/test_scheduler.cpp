@@ -18,9 +18,6 @@ static void TestPush() {
     MPSCQueue::Node node1, node2;
     sched.Push(&node1);
     sched.Push(&node2);
-
-    assert(sched.m_info_list[0].queue_size.load(std::memory_order_acquire) == 1);
-    assert(sched.m_info_list[1].queue_size.load(std::memory_order_acquire) == 1);
 }
 
 static void TestPop() {
@@ -29,7 +26,6 @@ static void TestPop() {
 
     MPSCQueue::Node node1;
     sched.Push(&node1);
-    assert(sched.m_info_list[0].queue_size.load(std::memory_order_acquire) == 1);
 
     auto ret_node = sched.Pop(0);
     assert(ret_node == &node1);
@@ -81,8 +77,6 @@ static void TestStealReq() {
     for (uint32_t i = 0; i < N; ++i) {
         sched.Push(&node_list[i], 0);
     }
-    assert(sched.m_info_list[0].queue_size.load(std::memory_order_acquire) == N);
-    assert(sched.m_info_list[1].queue_size.load(std::memory_order_acquire) == 0);
 
     bool thread1_alive = true;
 
