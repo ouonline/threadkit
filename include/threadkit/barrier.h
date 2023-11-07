@@ -13,17 +13,14 @@ public:
         m_max_count = max_count;
     }
     void Wait() {
-        auto counter = m_counter.load(std::memory_order_acquire);
+        auto key = m_cond.PrepareWait();
+        auto counter = m_counter.fetch_add(1, std::memory_order_acq_rel) + 1;
         if (counter < m_max_count) {
-            auto key = m_cond.PrepareWait();
-            counter = m_counter.fetch_add(1, std::memory_order_acq_rel) + 1;
-            if (counter < m_max_count) {
-                m_cond.CommitWait(key);
-            } else {
-                m_cond.CancelWait();
-                m_cond.NotifyAll();
-                m_counter.store(0, std::memory_order_release);
-            }
+            m_cond.CommitWait(key);
+        } else {
+            m_counter.store(0, std::memory_order_release);
+            m_cond.CancelWait();
+            m_cond.NotifyAll();
         }
     }
 

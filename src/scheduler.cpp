@@ -1,4 +1,3 @@
-#include "threadkit/utils.h"
 #include "threadkit/scheduler.h"
 #include <cstdlib>
 #include <new>
@@ -67,9 +66,9 @@ MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
     bool is_empty;
     for (uint32_t i = begin; i < end; ++i) {
         auto info = &m_info_list[i];
-        pthread_mutex_lock(&info->lock);
+        info->mtx.Lock();
         auto ret = info->queue.Pop(&is_empty);
-        pthread_mutex_unlock(&info->lock);
+        info->mtx.Unlock();
         if (ret) {
             return ret;
         }
@@ -96,11 +95,11 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
     bool is_empty = true;
 
 retry:
-    pthread_mutex_lock(&info->lock);
+    info->mtx.Lock();
     do {
         node = queue->Pop(&is_empty);
     } while (!node && !is_empty);
-    pthread_mutex_unlock(&info->lock);
+    info->mtx.Unlock();
 
     // is empty
     if (!node) {

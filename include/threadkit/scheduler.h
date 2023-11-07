@@ -3,7 +3,7 @@
 
 #include "mpsc_queue.h"
 #include "event_count.h"
-#include <pthread.h>
+#include "mutex.h"
 
 namespace threadkit {
 
@@ -48,16 +48,9 @@ private:
 
 private:
     struct Info final {
-        Info() {
-            pthread_mutex_init(&lock, nullptr);
-        }
-        ~Info() {
-            pthread_mutex_destroy(&lock);
-        }
-
         MPSCQueue queue;
         EventCount cond;
-        pthread_mutex_t lock;
+        Mutex mtx;
     };
 
 private:

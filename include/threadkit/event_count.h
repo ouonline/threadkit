@@ -2,6 +2,7 @@
 #define __THREADKIT_EVENT_COUNT_H__
 
 #include <stdint.h>
+#include <atomic>
 
 namespace threadkit {
 
@@ -10,7 +11,9 @@ public:
     typedef uint32_t Key;
 
 public:
-    EventCount() : m_val(0) {}
+    EventCount() : m_val(0) {
+        static_assert(sizeof(m_val) == sizeof(uint64_t), "atomic size mismatch");
+    }
     Key PrepareWait();
     void CancelWait();
     void CommitWait(Key);
@@ -18,14 +21,14 @@ public:
     void NotifyAll();
 
     template <typename Predicate>
-    void Wait(Predicate&& predicate) {
-        if (predicate()) {
+    void Wait(Predicate&& stop_waiting) {
+        if (stop_waiting()) {
             return;
         }
 
         while (true) {
             auto key = PrepareWait();
-            if (predicate()) {
+            if (stop_waiting()) {
                 CancelWait();
                 return;
             }
@@ -35,8 +38,7 @@ public:
 
 private:
     // the epoch in the most significant 32 bits and the waiter count in the least significant 32 bits
-    // std::atomic's implementation is platform-dependent and doesn't fit for futex().
-    uint64_t m_val;
+    std::atomic<uint64_t> m_val;
 
 private:
     EventCount(const EventCount&) = delete;

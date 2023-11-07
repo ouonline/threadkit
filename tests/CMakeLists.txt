@@ -12,3 +12,6 @@ target_link_libraries(test_event_count PRIVATE threadkit_static)
 
 add_executable(test_scheduler test_scheduler.cpp)
 target_link_libraries(test_scheduler PRIVATE threadkit_static)
+
+add_executable(test_mutex test_mutex.cpp)
+target_link_libraries(test_mutex PRIVATE threadkit_static)

@@ -52,11 +52,42 @@ static void TestTask(void) {
     });
 }
 
+#define N 2
+
+static void TestAsync(void) {
+    StaticThreadPool tp;
+    tp.Init(N);
+
+    EventCount cond;
+    atomic<uint32_t> nr_finished(0);
+    tp.ParallelRunAsync([&nr_finished, &cond](uint32_t thread_idx) -> void {
+        cout << "thread [" << thread_idx << "] finished." << endl;
+        auto value = nr_finished.fetch_add(1, std::memory_order_acq_rel) + 1;
+        if (value >= N) {
+            cond.NotifyOne();
+        }
+    });
+    cond.Wait([&nr_finished]() -> bool {
+        return (nr_finished.load(std::memory_order_acquire) >= N);
+    });
+}
+
+static void TestSync(void) {
+    StaticThreadPool tp;
+    tp.Init(N);
+
+    tp.ParallelRun([](uint32_t thread_idx) -> void {
+        cout << "thread [" << thread_idx << "] finished." << endl;
+    });
+}
+
 struct {
     const char* name;
     void (*func)(void);
 } g_test_suite[] = {
     {"task", TestTask},
+    {"async", TestAsync},
+    {"sync", TestSync},
     {nullptr, nullptr},
 };
 
