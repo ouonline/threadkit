@@ -37,7 +37,7 @@ static void Thread0(Scheduler* sched, uint32_t* run_count, bool* thread1_alive) 
     while (true) {
         // invoke Pop() to trigger request stealing
         auto node = sched->Pop(0);
-        sched->Push(node, 0);
+        sched->m_push_idx.store(0, std::memory_order_seq_cst);
         SleepSec(1);
         ++(*run_count);
         if (!(*thread1_alive)) {
@@ -75,7 +75,8 @@ static void TestStealReq() {
     vector<MPSCQueue::Node> node_list(N);
 
     for (uint32_t i = 0; i < N; ++i) {
-        sched.Push(&node_list[i], 0);
+        sched.m_push_idx.store(0, std::memory_order_seq_cst);
+        sched.Push(&node_list[i]);
     }
 
     bool thread1_alive = true;

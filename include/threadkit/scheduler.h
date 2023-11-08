@@ -21,10 +21,7 @@ public:
     bool Init(uint32_t num);
     void Destroy();
 
-    void Push(MPSCQueue::Node* node) {
-        auto idx = m_push_idx.fetch_add(1, std::memory_order_acquire) % m_num;
-        Push(node, idx);
-    }
+    void Push(MPSCQueue::Node* node);
 
     // blocks if queue is empty. returns nullptr for dummy node.
     MPSCQueue::Node* Pop(uint32_t idx);

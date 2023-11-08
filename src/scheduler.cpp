@@ -62,6 +62,11 @@ void Scheduler::Push(MPSCQueue::Node* node, uint32_t idx) {
     }
 }
 
+void Scheduler::Push(MPSCQueue::Node* node) {
+    auto idx = m_push_idx.fetch_add(1, std::memory_order_acquire) % m_num;
+    Push(node, idx);
+}
+
 MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
     bool is_empty;
     for (uint32_t i = begin; i < end; ++i) {
