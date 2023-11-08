@@ -41,12 +41,6 @@ public:
 
     bool AddTask(ThreadTask* task);
 
-    /**
-       @brief assign `task` to thread `prefer_thread_idx`.
-       @note `task` may be scheduled to other thread if thread `prefer_thread_idx` is busy.
-    */
-    bool AddTask(ThreadTask* task, uint32_t prefer_thread_idx);
-
 private:
     static void ThreadFunc(uint32_t thread_idx, Scheduler*);
 

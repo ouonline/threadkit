@@ -55,14 +55,6 @@ bool ThreadPool::AddTask(ThreadTask* task) {
     return true;
 }
 
-bool ThreadPool::AddTask(ThreadTask* task, uint32_t prefer_thread_idx) {
-    if (!m_sched.IsActive()) {
-        return false;
-    }
-    m_sched.Push(task, prefer_thread_idx);
-    return true;
-}
-
 void ThreadPool::Destroy() {
     if (!m_thread_list.empty()) {
         m_sched.Stop();
@@ -114,8 +106,8 @@ void StaticThreadPool::ThreadFunc(uint32_t thread_idx, Barrier* barrier, const f
 }
 
 void StaticThreadPool::ParallelRunAsync(const function<void(uint32_t)>& f) {
+    m_func = f;
     if (f) {
-        m_func = f;
         m_start_barrier.Wait();
     }
 }
@@ -138,6 +130,8 @@ void StaticThreadPool::ParallelRun(const function<void(uint32_t)>& f) {
         cond.Wait([nr_thread, &nr_finished]() -> bool {
             return (nr_finished.load(std::memory_order_acquire) >= nr_thread);
         });
+
+        m_func = nullptr;
     }
 }
 

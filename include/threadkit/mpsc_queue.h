@@ -10,7 +10,6 @@ namespace threadkit {
 class MPSCQueue final {
 public:
     struct Node {
-        virtual ~Node() {}
         std::atomic<Node*> mpsc_next;
     };
 

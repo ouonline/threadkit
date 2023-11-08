@@ -14,7 +14,7 @@ namespace threadkit {
 
 void Mutex::Lock() {
     // try to grab lock
-    auto prev = m_state.fetch_or(STATE_LOCKED, std::memory_order_seq_cst);
+    auto prev = m_state.fetch_or(STATE_LOCKED, std::memory_order_acq_rel);
     if ((prev & STATE_LOCKED) == 0) { // previous state is unlocked
         return;
     }
@@ -37,6 +37,11 @@ void Mutex::Unlock() {
     // unlock and wake someone up
     m_state.store(STATE_UNLOCKED_AND_UNCONTENDED, std::memory_order_seq_cst);
     FutexWakeOne(reinterpret_cast<uint32_t*>(&m_state));
+}
+
+bool Mutex::TryLock() {
+    auto prev = m_state.fetch_or(STATE_LOCKED, std::memory_order_acq_rel);
+    return ((prev & STATE_LOCKED) == 0);
 }
 
 }

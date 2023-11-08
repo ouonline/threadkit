@@ -21,12 +21,6 @@ public:
     bool Init(uint32_t num);
     void Destroy();
 
-    /**
-       @brief assign `node` to `prefer_idx`.
-       @note `node` may be scheduled to other consumers if `prefer_idx` is busy.
-    */
-    void Push(MPSCQueue::Node* node, uint32_t prefer_idx);
-
     void Push(MPSCQueue::Node* node) {
         auto idx = m_push_idx.fetch_add(1, std::memory_order_acquire) % m_num;
         Push(node, idx);
@@ -46,11 +40,17 @@ private:
     MPSCQueue::Node* AskForReqInRange(uint32_t begin, uint32_t end);
     MPSCQueue::Node* AskForReq(uint32_t curr);
 
+    /**
+       @brief assign `node` to `prefer_idx`.
+       @note `node` may be scheduled to other consumers if `prefer_idx` is busy.
+    */
+    void Push(MPSCQueue::Node* node, uint32_t prefer_idx);
+
 private:
     struct Info final {
         MPSCQueue queue;
         EventCount cond;
-        Mutex mtx;
+        Mutex pop_lock;
     };
 
 private:

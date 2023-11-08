@@ -7,11 +7,11 @@ using namespace std;
 namespace threadkit {
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-static inline uint32_t* GetEPochAddr(uint64_t* v) {
+static inline uint32_t* GetEpochAddr(uint64_t* v) {
     return reinterpret_cast<uint32_t*>(v) + 1;
 }
-#else
-static inline uint32_t* GetEPochAddr(uint64_t* v) {
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+static inline uint32_t* GetEpochAddr(uint64_t* v) {
     return reinterpret_cast<uint32_t*>(v);
 }
 #endif
@@ -35,7 +35,7 @@ void EventCount::CancelWait() {
 }
 
 void EventCount::CommitWait(EventCount::Key v) {
-    volatile uint32_t* epoch = GetEPochAddr(reinterpret_cast<uint64_t*>(&m_val));
+    volatile uint32_t* epoch = GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val));
     while (*epoch == v) {
         FutexWait(const_cast<uint32_t*>(epoch), v);
     }
@@ -49,14 +49,14 @@ void EventCount::CommitWait(EventCount::Key v) {
 void EventCount::NotifyOne() {
     auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
     if (prev & WAITER_MASK) {
-        FutexWakeOne(GetEPochAddr(reinterpret_cast<uint64_t*>(&m_val)));
+        FutexWakeOne(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));
     }
 }
 
 void EventCount::NotifyAll() {
     auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
     if (prev & WAITER_MASK) {
-        FutexWakeAll(GetEPochAddr(reinterpret_cast<uint64_t*>(&m_val)));
+        FutexWakeAll(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));
     }
 }
 

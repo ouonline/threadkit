@@ -51,6 +51,21 @@ private:
     std::mutex m_mtx;
 };
 
+static uint64_t Fibonacci(uint64_t n) {
+    if (n < 2) {
+        return n;
+    }
+
+    uint64_t f1 = 0, f2 = 1;
+    for(uint64_t i = 1; i < n; ++i) {
+        uint64_t tmp = f1 + f2;
+        f1 = f2;
+        f2 = tmp;
+    }
+
+    return f2;
+}
+
 template <typename T>
 static void TestFunc(uint64_t* time_cost) {
     StaticThreadPool tp;
@@ -63,12 +78,11 @@ static void TestFunc(uint64_t* time_cost) {
         tp.ParallelRun([&mtx, &counter](uint32_t idx) -> void {
             for (uint32_t i = 0; i < M; ++i) {
                 mtx.Lock();
-                ++counter;
+                Fibonacci(30);
                 mtx.Unlock();
             }
         });
     }
-    assert(counter == N * M);
 }
 
 #define NR_LOOP 100

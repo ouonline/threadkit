@@ -66,9 +66,9 @@ MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
     bool is_empty;
     for (uint32_t i = begin; i < end; ++i) {
         auto info = &m_info_list[i];
-        info->mtx.Lock();
+        info->pop_lock.Lock();
         auto ret = info->queue.Pop(&is_empty);
-        info->mtx.Unlock();
+        info->pop_lock.Unlock();
         if (ret) {
             return ret;
         }
@@ -95,11 +95,11 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
     bool is_empty = true;
 
 retry:
-    info->mtx.Lock();
+    info->pop_lock.Lock();
     do {
         node = queue->Pop(&is_empty);
     } while (!node && !is_empty);
-    info->mtx.Unlock();
+    info->pop_lock.Unlock();
 
     // is empty
     if (!node) {

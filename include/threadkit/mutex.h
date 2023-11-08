@@ -11,7 +11,9 @@ public:
     Mutex() : m_state(0) {
         static_assert(sizeof(m_state) == sizeof(uint32_t), "atomic size mismatch");
     }
+
     void Lock();
+    bool TryLock();
     void Unlock();
 
 private:
