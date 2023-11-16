@@ -14,6 +14,7 @@ public:
     EventCount() : m_val(0) {
         static_assert(sizeof(m_val) == sizeof(uint64_t), "atomic size mismatch");
     }
+
     Key PrepareWait();
     void CancelWait();
     void CommitWait(Key);
@@ -43,8 +44,8 @@ private:
 private:
     EventCount(const EventCount&) = delete;
     EventCount(EventCount&&) = delete;
-    void operator=(EventCount&&) = delete;
     void operator=(const EventCount&) = delete;
+    void operator=(EventCount&&) = delete;
 };
 
 }

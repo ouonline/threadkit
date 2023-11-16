@@ -67,10 +67,12 @@ void Scheduler::Push(MPSCQueue::Node* node) {
     Push(node, idx);
 }
 
+// make sure that current index is not in [begin, end)
 MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
     bool is_empty;
-    for (uint32_t i = begin; i < end; ++i) {
-        auto info = &m_info_list[i];
+
+    for (uint32_t i = end; i > begin; --i) {
+        auto info = &m_info_list[i - 1];
         info->pop_lock.Lock();
         auto ret = info->queue.Pop(&is_empty);
         info->pop_lock.Unlock();
@@ -82,12 +84,29 @@ MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
     return nullptr;
 }
 
-// TODO optimize: use bitmap to accerarate lookup or choose one randomly
+// try to get a request from most recently pushed queues
 MPSCQueue::Node* Scheduler::AskForReq(uint32_t curr_idx) {
-    auto ret = AskForReqInRange(0, curr_idx);
-    if (!ret) {
-        ret = AskForReqInRange(curr_idx + 1, m_num);
+    MPSCQueue::Node* ret;
+    auto curr_push_idx = m_push_idx.load(std::memory_order_relaxed);
+
+    if (curr_push_idx <= curr_idx) {
+        ret = AskForReqInRange(0, curr_push_idx);
+        if (!ret) {
+            ret = AskForReqInRange(curr_idx + 1, m_num);
+            if (!ret) {
+                ret = AskForReqInRange(curr_push_idx, curr_idx);
+            }
+        }
+    } else {
+        ret = AskForReqInRange(curr_idx + 1, curr_push_idx);
+        if (!ret) {
+            ret = AskForReqInRange(0, curr_idx);
+            if (!ret) {
+                ret = AskForReqInRange(curr_push_idx, m_num);
+            }
+        }
     }
+
     return ret;
 }
 
@@ -100,6 +119,8 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
     bool is_empty = true;
 
 retry:
+    auto wait_key = cond->PrepareWait();
+
     info->pop_lock.Lock();
     do {
         node = queue->Pop(&is_empty);
@@ -108,19 +129,16 @@ retry:
 
     // is empty
     if (!node) {
-        if (!m_active) {
-            return nullptr;
+        if (m_active) {
+            node = AskForReq(idx);
+            if (!node) {
+                cond->CommitWait(wait_key);
+                goto retry;
+            }
         }
-
-        auto key = cond->PrepareWait();
-        node = AskForReq(idx);
-        if (!node) {
-            cond->CommitWait(key);
-            goto retry;
-        }
-        cond->CancelWait();
     }
 
+    cond->CancelWait();
     return node;
 }
 

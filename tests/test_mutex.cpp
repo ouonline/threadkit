@@ -24,19 +24,7 @@ private:
     uint64_t* m_ms;
 };
 
-class TestTask final : public ThreadTask {
-public:
-    TestTask(uint64_t* counter, Mutex* lck) : m_counter(counter), m_lock(lck) {}
-    ThreadTask* Run(uint32_t) override {
-        return nullptr;
-    }
-
-private:
-    uint64_t* m_counter;
-    Mutex* m_lock;
-};
-
-#define N 5
+#define NR_THREAD 5
 #define M 10000
 
 class StdMutex final {
@@ -51,25 +39,10 @@ private:
     std::mutex m_mtx;
 };
 
-static uint64_t Fibonacci(uint64_t n) {
-    if (n < 2) {
-        return n;
-    }
-
-    uint64_t f1 = 0, f2 = 1;
-    for(uint64_t i = 1; i < n; ++i) {
-        uint64_t tmp = f1 + f2;
-        f1 = f2;
-        f2 = tmp;
-    }
-
-    return f2;
-}
-
 template <typename T>
 static void TestFunc(uint64_t* time_cost) {
     StaticThreadPool tp;
-    assert(tp.Init(N));
+    assert(tp.Init(NR_THREAD));
 
     T mtx;
     uint64_t counter = 0;
@@ -78,11 +51,12 @@ static void TestFunc(uint64_t* time_cost) {
         tp.ParallelRun([&mtx, &counter](uint32_t idx) -> void {
             for (uint32_t i = 0; i < M; ++i) {
                 mtx.Lock();
-                Fibonacci(30);
+                ++counter;
                 mtx.Unlock();
             }
         });
     }
+    assert(counter == NR_THREAD * M);
 }
 
 #define NR_LOOP 100

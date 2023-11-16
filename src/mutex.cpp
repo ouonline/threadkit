@@ -12,15 +12,18 @@ namespace threadkit {
 #define STATE_LOCKED_AND_UNCONTENDED STATE_LOCKED
 #define STATE_UNLOCKED_AND_UNCONTENDED ((uint32_t)0)
 
-void Mutex::Lock() {
-    // try to grab lock
+bool Mutex::TryLock() {
     auto prev = m_state.fetch_or(STATE_LOCKED, std::memory_order_acq_rel);
-    if ((prev & STATE_LOCKED) == 0) { // previous state is unlocked
+    return ((prev & STATE_LOCKED) == 0);
+}
+
+void Mutex::Lock() {
+    if (TryLock()) {
         return;
     }
 
     // have to sleep
-    prev = m_state.exchange(STATE_LOCKED_AND_CONTENDED, std::memory_order_relaxed);
+    auto prev = m_state.exchange(STATE_LOCKED_AND_CONTENDED, std::memory_order_relaxed);
     while (prev & STATE_LOCKED) {
         FutexWait(reinterpret_cast<uint32_t*>(&m_state), STATE_LOCKED_AND_CONTENDED);
         prev = m_state.exchange(STATE_LOCKED_AND_CONTENDED, std::memory_order_release);
@@ -37,11 +40,6 @@ void Mutex::Unlock() {
     // unlock and wake someone up
     m_state.store(STATE_UNLOCKED_AND_UNCONTENDED, std::memory_order_seq_cst);
     FutexWakeOne(reinterpret_cast<uint32_t*>(&m_state));
-}
-
-bool Mutex::TryLock() {
-    auto prev = m_state.fetch_or(STATE_LOCKED, std::memory_order_acq_rel);
-    return ((prev & STATE_LOCKED) == 0);
 }
 
 }

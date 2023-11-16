@@ -1,6 +1,4 @@
 #include <iostream>
-#include <string>
-#include <atomic>
 using namespace std;
 
 #include "threadkit/event_count.h"
@@ -9,14 +7,11 @@ using namespace threadkit;
 
 class JoinableTask final : public ThreadTask {
 public:
-    JoinableTask(const string& msg, atomic<uint32_t>* nr_finished, uint32_t expected, EventCount* cond)
-        : m_expected(expected), m_msg(msg), m_nr_finished(nr_finished), m_cond(cond) {}
+    JoinableTask(bool* finished, EventCount* cond) : m_finished(finished), m_cond(cond) {}
     ThreadTask* Run(uint32_t) override {
-        cout << "task [" << std::this_thread::get_id() << "], msg -> " << m_msg << endl;
-        auto count = m_nr_finished->fetch_add(1, std::memory_order_acq_rel) + 1;
-        if (count >= m_expected) {
-            m_cond->NotifyOne();
-        }
+        cout << "task [" << std::this_thread::get_id() << "]: Hello, world!" << endl;
+        *m_finished = true;
+        m_cond->NotifyOne();
         return nullptr;
     }
     void DeleteCallback() {
@@ -24,9 +19,7 @@ public:
     }
 
 private:
-    const uint32_t m_expected;
-    string m_msg;
-    atomic<uint32_t>* m_nr_finished;
+    bool* m_finished;
     EventCount* m_cond;
 };
 
@@ -39,20 +32,19 @@ static void TestTask(void) {
     ThreadPool tp;
     tp.Init(2);
 
-    constexpr uint32_t expected = 1;
     EventCount cond;
-    atomic<uint32_t> nr_finished(0);
+    bool finished = false;
 
-    JoinableTask task("Hello, world!", &nr_finished, expected, &cond);
+    JoinableTask task(&finished, &cond);
     task.deleter = TestDeleter;
     tp.AddTask(&task);
 
-    cond.Wait([&nr_finished, expected]() -> bool {
-        return (nr_finished.load(std::memory_order_acquire) >= expected);
+    cond.Wait([&finished]() -> bool {
+        return finished;
     });
 }
 
-#define N 2
+#define N 10
 
 static void TestAsync(void) {
     StaticThreadPool tp;
