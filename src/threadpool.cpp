@@ -44,6 +44,8 @@ bool ThreadPool::Init(uint32_t thread_num) {
         m_thread_list.emplace_back(std::thread(ThreadFunc, i, &m_sched));
     }
 
+    m_sched.Start();
+
     return true;
 }
 

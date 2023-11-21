@@ -39,7 +39,6 @@ bool Scheduler::Init(uint32_t num) {
     }
 
     m_num = num;
-    m_active = true;
 
     return true;
 }
@@ -119,8 +118,6 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
     bool is_empty = true;
 
 retry:
-    auto wait_key = cond->PrepareWait();
-
     info->pop_lock.Lock();
     do {
         node = queue->Pop(&is_empty);
@@ -129,6 +126,8 @@ retry:
 
     // is empty
     if (!node) {
+        // PrepareWait() before checking m_active
+        auto wait_key = cond->PrepareWait();
         if (m_active) {
             node = AskForReq(idx);
             if (!node) {
@@ -136,10 +135,14 @@ retry:
                 goto retry;
             }
         }
+        cond->CancelWait();
     }
 
-    cond->CancelWait();
     return node;
+}
+
+void Scheduler::Start() {
+    m_active = true;
 }
 
 void Scheduler::Stop() {

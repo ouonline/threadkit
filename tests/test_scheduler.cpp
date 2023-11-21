@@ -14,21 +14,27 @@ using namespace threadkit;
 static void TestPush() {
     Scheduler sched;
     assert(sched.Init(2));
+    sched.Start();
 
     MPSCQueue::Node node1, node2;
     sched.Push(&node1);
     sched.Push(&node2);
+
+    sched.Stop();
 }
 
 static void TestPop() {
     Scheduler sched;
     assert(sched.Init(1));
+    sched.Start();
 
     MPSCQueue::Node node1;
     sched.Push(&node1);
 
     auto ret_node = sched.Pop(0);
     assert(ret_node == &node1);
+
+    sched.Stop();
 }
 
 #define N 5
@@ -71,6 +77,7 @@ static void Thread1(const vector<MPSCQueue::Node>* node_list, Scheduler* sched,
 static void TestStealReq() {
     Scheduler sched;
     assert(sched.Init(2));
+    sched.Start();
 
     vector<MPSCQueue::Node> node_list(N);
 
@@ -92,6 +99,8 @@ static void TestStealReq() {
 
     assert(t0_run_count > 0);
     assert(t1_run_count > 0);
+
+    sched.Stop();
 }
 
 #undef N

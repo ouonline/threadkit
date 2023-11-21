@@ -21,12 +21,13 @@ public:
     bool Init(uint32_t num);
     void Destroy();
 
+    void Start();
+    void Stop();
+
     void Push(MPSCQueue::Node* node);
 
     // blocks if queue is empty. returns nullptr for dummy node.
     MPSCQueue::Node* Pop(uint32_t idx);
-
-    void Stop();
 
     bool IsActive() const {
         return m_active;
