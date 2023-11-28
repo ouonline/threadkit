@@ -14,6 +14,8 @@ static inline uint32_t* GetEpochAddr(uint64_t* v) {
 static inline uint32_t* GetEpochAddr(uint64_t* v) {
     return reinterpret_cast<uint32_t*>(v);
 }
+#else
+#error "unsupported endian format"
 #endif
 
 #define EPOCH_SHIFT 32
