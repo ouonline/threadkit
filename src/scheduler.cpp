@@ -109,33 +109,40 @@ MPSCQueue::Node* Scheduler::AskForReq(uint32_t curr_idx) {
     return ret;
 }
 
-MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
+MPSCQueue::Node* Scheduler::TryPop(uint32_t idx) {
     auto info = &m_info_list[idx];
     auto queue = &info->queue;
-    auto cond = &info->cond;
 
     MPSCQueue::Node* node;
     bool is_empty = true;
 
-retry:
     info->pop_lock.Lock();
     do {
         node = queue->Pop(&is_empty);
     } while (!node && !is_empty);
     info->pop_lock.Unlock();
 
-    // is empty
     if (!node) {
-        // PrepareWait() before checking m_active
-        auto wait_key = cond->PrepareWait();
-        if (m_active) {
-            node = AskForReq(idx);
-            if (!node) {
-                cond->CommitWait(wait_key);
-                goto retry;
-            }
+        node = AskForReq(idx);
+    }
+
+    return node;
+}
+
+MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
+    auto info = &m_info_list[idx];
+    auto cond = &info->cond;
+    MPSCQueue::Node* node;
+
+    while (true) {
+        auto key = cond->PrepareWait();
+        node = TryPop(idx);
+        if (node || !m_active) {
+            cond->CancelWait();
+            break;
         }
-        cond->CancelWait();
+
+        cond->CommitWait(key);
     }
 
     return node;

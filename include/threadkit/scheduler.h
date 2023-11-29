@@ -29,6 +29,9 @@ public:
     // blocks if queue is empty. returns nullptr for dummy node.
     MPSCQueue::Node* Pop(uint32_t idx);
 
+    // returns nullptr if queue is empty or inactive
+    MPSCQueue::Node* TryPop(uint32_t idx);
+
     bool IsActive() const {
         return m_active;
     }

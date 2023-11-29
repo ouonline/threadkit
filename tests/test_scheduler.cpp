@@ -37,6 +37,23 @@ static void TestPop() {
     sched.Stop();
 }
 
+static void TestTryPop() {
+    Scheduler sched;
+    assert(sched.Init(1));
+    sched.Start();
+
+    MPSCQueue::Node node1;
+    sched.Push(&node1);
+
+    auto ret_node = sched.TryPop(0);
+    assert(ret_node == &node1);
+
+    ret_node = sched.TryPop(0);
+    assert(ret_node == nullptr);
+
+    sched.Stop();
+}
+
 #define N 5
 
 static void Thread0(Scheduler* sched, uint32_t* run_count, bool* thread1_alive) {
@@ -111,6 +128,7 @@ static const struct {
 } g_test_suite[] = {
     {"TestPush", TestPush},
     {"TestPop", TestPop},
+    {"TestTryPop", TestTryPop},
     {"TestStealReq", TestStealReq},
     {nullptr, nullptr},
 };
