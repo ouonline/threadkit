@@ -1,7 +1,7 @@
-#ifndef __THREADKIT_SPSC_RING_BUFFER_H__
-#define __THREADKIT_SPSC_RING_BUFFER_H__
+#ifndef __THREADKIT_SPSC_BOUNDED_QUEUE_H__
+#define __THREADKIT_SPSC_BOUNDED_QUEUE_H__
 
-/** single-producer-single-consumer ring buffer implementation */
+/** single-producer-single-consumer bounded queue implementation */
 
 #include <atomic>
 #include <vector>
@@ -9,42 +9,47 @@
 namespace threadkit {
 
 template <typename T>
-class SPSCRingBuffer final {
+class SPSCBoundedQueue final {
 public:
-    SPSCRingBuffer(uint32_t max_nr_item) : m_buffer(max_nr_item + 1) {
+    SPSCBoundedQueue(uint32_t max_nr_item) : m_buffer(max_nr_item + 1) {
         m_head.store(0, std::memory_order_relaxed);
         m_tail.store(0, std::memory_order_relaxed);
     }
 
-    SPSCRingBuffer(SPSCRingBuffer&& rhs) {
+    SPSCBoundedQueue(SPSCBoundedQueue&& rhs) {
         DoMove(std::move(rhs));
     }
 
-    void operator=(SPSCRingBuffer&& rhs) {
+    void operator=(SPSCBoundedQueue&& rhs) {
         DoMove(std::move(rhs));
     }
 
-    template <typename ItemType>
-    bool Push(ItemType&& item) {
+    template <typename DataType>
+    bool Push(DataType&& data) {
         uint32_t tail = m_tail.load(std::memory_order_relaxed);
         uint32_t next_tail = Next(tail);
         if (next_tail == m_head.load(std::memory_order_acquire)) {
             return false; // full
         }
 
-        m_buffer[tail] = std::forward<ItemType>(item);
+        m_buffer[tail] = std::forward<DataType>(data);
         m_tail.store(next_tail, std::memory_order_release);
         return true;
     }
 
-    template <typename ItemType>
-    bool Pop(ItemType* item) {
+    template <typename DataType = T>
+    bool Pop(DataType* data = nullptr) {
         uint32_t head = m_head.load(std::memory_order_relaxed);
         if (head == m_tail.load(std::memory_order_acquire)) {
             return false; // empty
         }
 
-        *item = std::move(m_buffer[head]);
+        if (data) {
+            *data = std::move(m_buffer[head]);
+        } else {
+            m_buffer[head].~T();
+        }
+
         m_head.store(Next(head), std::memory_order_release);
         return true;
     }
@@ -62,7 +67,7 @@ private:
         return (cursor + 1) % m_buffer.size();
     }
 
-    void DoMove(SPSCRingBuffer&& rhs) {
+    void DoMove(SPSCBoundedQueue&& rhs) {
         m_head.store(rhs.m_head.load(std::memory_order_relaxed), std::memory_order_relaxed);
         m_tail.store(rhs.m_tail.load(std::memory_order_relaxed), std::memory_order_relaxed);
         m_buffer = std::move(rhs.m_buffer);
@@ -87,8 +92,8 @@ private:
     std::vector<T> m_buffer;
 
 private:
-    SPSCRingBuffer(const SPSCRingBuffer&) = delete;
-    void operator=(const SPSCRingBuffer&) = delete;
+    SPSCBoundedQueue(const SPSCBoundedQueue&) = delete;
+    void operator=(const SPSCBoundedQueue&) = delete;
 };
 
 }

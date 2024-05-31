@@ -16,5 +16,5 @@ target_link_libraries(test_scheduler PRIVATE threadkit_static)
 add_executable(test_mutex test_mutex.cpp)
 target_link_libraries(test_mutex PRIVATE threadkit_static)
 
-add_executable(test_spsc_ring_buffer test_spsc_ring_buffer.cpp)
-target_include_directories(test_spsc_ring_buffer PRIVATE ../include)
+add_executable(test_spsc_bounded_queue test_spsc_bounded_queue.cpp)
+target_include_directories(test_spsc_bounded_queue PRIVATE ../include)
