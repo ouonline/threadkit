@@ -39,12 +39,12 @@ bool ThreadPool::Init(uint32_t thread_num) {
         return false;
     }
 
+    m_sched.Start();
+
     m_thread_list.reserve(thread_num);
     for (uint32_t i = 0; i < thread_num; ++i) {
         m_thread_list.emplace_back(std::thread(ThreadFunc, i, &m_sched));
     }
-
-    m_sched.Start();
 
     return true;
 }
