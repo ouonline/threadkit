@@ -86,7 +86,7 @@ MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
 // try to get a request from most recently pushed queues
 MPSCQueue::Node* Scheduler::AskForReq(uint32_t curr_idx) {
     MPSCQueue::Node* ret;
-    auto curr_push_idx = m_push_idx.load(std::memory_order_relaxed);
+    auto curr_push_idx = m_push_idx.load(std::memory_order_relaxed) % m_num;
 
     if (curr_push_idx <= curr_idx) {
         ret = AskForReqInRange(0, curr_push_idx);
