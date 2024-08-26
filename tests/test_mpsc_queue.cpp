@@ -28,20 +28,20 @@ static void TestPush() {
 static void TestPop() {
     MPSCQueue q;
 
-    bool is_empty = false;
-    auto node = q.Pop(&is_empty);
-    assert(!node);
-    assert(is_empty);
+    pair<MPSCQueue::Node*, bool> ret_pair = q.Pop();
+    assert(!ret_pair.first);
+    assert(ret_pair.second);
 
+    bool is_empty;
     auto node1 = new TestNode(23333);
     is_empty = q.Push(node1);
     assert(is_empty);
 
-    node = q.Pop(&is_empty);
-    assert(node);
-    auto node2 = static_cast<TestNode*>(node);
+    ret_pair = q.Pop();
+    assert(ret_pair.first);
+    assert(!ret_pair.second);
+    auto node2 = static_cast<TestNode*>(ret_pair.first);
     assert(node2->value == 23333);
-    assert(!is_empty);
 
     delete node1;
 }

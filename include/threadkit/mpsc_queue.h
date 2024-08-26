@@ -2,6 +2,7 @@
 #define __THREADKIT_MPSC_QUEUE_H__
 
 #include <atomic>
+#include <utility> // std::pair
 
 namespace threadkit {
 
@@ -22,10 +23,18 @@ public:
     bool Push(Node* node);
 
     /**
-       @param [out] is_empty indicates whether the queue is empty or not.
-       @return may be nullptr if insertion is happening and `is_empty` is false.
+       @return `first` is the popped node and `second` indicates whether the queue is empty or not.
+       `first` may be nullptr if insertion is happening, and `second` is false at that moment.
     */
-    Node* Pop(bool* is_empty);
+    std::pair<Node*, bool> Pop();
+
+    Node* PopNode() {
+        std::pair<Node*, bool> ret_pair;
+        do {
+            ret_pair = Pop();
+        } while (!ret_pair.first && !ret_pair.second);
+        return ret_pair.first;
+    }
 
 private:
     // l1 cache line size for most CPUs

@@ -51,7 +51,7 @@ bool MPSCQueue::Push(Node* node) {
     return (prev == &m_stub);
 }
 
-MPSCQueue::Node* MPSCQueue::Pop(bool* is_empty) {
+pair<MPSCQueue::Node*, bool> MPSCQueue::Pop() {
     auto head = m_head;
     auto next = head->mpsc_next.load(std::memory_order_acquire);
 
@@ -66,8 +66,7 @@ MPSCQueue::Node* MPSCQueue::Pop(bool* is_empty) {
               +--------+
             */
 
-            *is_empty = true;
-            return nullptr;
+            return {nullptr, true};
         }
 
         /*
@@ -145,8 +144,7 @@ MPSCQueue::Node* MPSCQueue::Pop(bool* is_empty) {
                  +------+    +------+
         */
 
-        *is_empty = false;
-        return head;
+        return {head, false};
     }
 
     /*
@@ -177,8 +175,7 @@ MPSCQueue::Node* MPSCQueue::Pop(bool* is_empty) {
                 tail/m_tail
         */
 
-        *is_empty = false;
-        return nullptr; // inserting
+        return {nullptr, false}; // inserting
     }
 
     /*
@@ -248,8 +245,7 @@ MPSCQueue::Node* MPSCQueue::Pop(bool* is_empty) {
                    tail
         */
 
-        *is_empty = false;
-        return head;
+        return {head, false};
     }
 
     /*
@@ -271,8 +267,7 @@ MPSCQueue::Node* MPSCQueue::Pop(bool* is_empty) {
                            m_tail
     */
 
-    *is_empty = false;
-    return nullptr; // inserting
+    return {nullptr, false}; // inserting
 }
 
 }
