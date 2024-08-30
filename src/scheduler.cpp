@@ -8,11 +8,10 @@ namespace threadkit {
 void Scheduler::DoMove(Scheduler&& s) {
     m_push_idx.store(s.m_push_idx.load(std::memory_order_relaxed), std::memory_order_relaxed);
     m_num = s.m_num;
-    m_info_list = s.m_info_list;
+    m_info_list = std::move(s.m_info_list);
 
     s.m_push_idx.store(0, std::memory_order_relaxed);
     s.m_num = 0;
-    s.m_info_list = nullptr;
 }
 
 Scheduler::Scheduler(Scheduler&& s) {
@@ -29,29 +28,12 @@ void Scheduler::operator=(Scheduler&& s) {
 }
 
 bool Scheduler::Init(uint32_t num) {
-    m_info_list = (Info*)malloc(sizeof(Info) * num);
-    if (!m_info_list) {
-        return false;
-    }
-
-    for (uint32_t i = 0; i < num; ++i) {
-        new (m_info_list + i) Info();
-    }
-
+    m_info_list = make_unique<Info[]>(num);
     m_num = num;
-
     return true;
 }
 
-void Scheduler::Destroy() {
-    if (m_info_list) {
-        for (uint32_t i = 0; i < m_num; ++i) {
-            m_info_list[i].~Info();
-        }
-        free(m_info_list);
-        m_info_list = nullptr;
-    }
-}
+void Scheduler::Destroy() {}
 
 void Scheduler::Push(MPSCQueue::Node* node, uint32_t idx) {
     auto info = &m_info_list[idx];

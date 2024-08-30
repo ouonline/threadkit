@@ -4,12 +4,13 @@
 #include "mpsc_queue.h"
 #include "event_count.h"
 #include "mutex.h"
+#include <memory>
 
 namespace threadkit {
 
 class Scheduler final {
 public:
-    Scheduler() : m_active(false), m_push_idx(0), m_num(0), m_info_list(nullptr) {}
+    Scheduler() : m_active(false), m_push_idx(0), m_num(0) {}
 
     Scheduler(Scheduler&&);
     void operator=(Scheduler&&);
@@ -57,8 +58,8 @@ private:
 private:
     bool m_active;
     std::atomic<uint32_t> m_push_idx;
+    std::unique_ptr<Info[]> m_info_list;
     uint32_t m_num;
-    Info* m_info_list;
 
 private:
     Scheduler(const Scheduler&) = delete;
