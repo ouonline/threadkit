@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <vector>
+#include "common.h"
 
 namespace threadkit {
 
@@ -90,9 +91,6 @@ public:
     }
 
 private:
-    // l1 cache line size for most CPUs
-    static constexpr int CACHELINE_SIZE = 64;
-
     union {
         std::atomic<uint64_t> m_push_idx;
         char padding1[CACHELINE_SIZE];

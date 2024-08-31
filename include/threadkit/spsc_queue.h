@@ -7,6 +7,7 @@
 */
 
 #include <atomic>
+#include "common.h"
 
 namespace threadkit {
 
@@ -142,9 +143,6 @@ public:
     }
 
 private:
-    // l1 cache line size for most CPUs
-    static constexpr int CACHELINE_SIZE = 64;
-
     // consumer
     union {
         std::atomic<Node*> m_head;

@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <utility> // std::pair
+#include "common.h"
 
 namespace threadkit {
 
@@ -37,9 +38,6 @@ public:
     }
 
 private:
-    // l1 cache line size for most CPUs
-    static constexpr int CACHELINE_SIZE = 64;
-
     union {
         Node* m_head;
         char padding[CACHELINE_SIZE];

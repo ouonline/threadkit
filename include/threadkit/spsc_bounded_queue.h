@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <vector>
+#include "common.h"
 
 namespace threadkit {
 
@@ -75,10 +76,6 @@ private:
         rhs.m_head.store(0, std::memory_order_relaxed);
         rhs.m_tail.store(0, std::memory_order_relaxed);
     }
-
-private:
-    // cache line size for most CPUs
-    static constexpr int CACHELINE_SIZE = 64;
 
 private:
     union {
