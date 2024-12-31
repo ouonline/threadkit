@@ -36,10 +36,10 @@ void EventCount::CancelWait() {
     m_val.fetch_sub(ONE_WAITER, std::memory_order_seq_cst);
 }
 
-void EventCount::CommitWait(EventCount::Key v) {
+void EventCount::CommitWait(EventCount::Key v, const TimeVal* timeout) {
     volatile uint32_t* epoch = GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val));
     while (*epoch == v) {
-        FutexWait(const_cast<uint32_t*>(epoch), v);
+        FutexWait(const_cast<uint32_t*>(epoch), v, timeout);
     }
     /*
       the faster #waiters gets to 0, the less likely it is that we'll do spurious wakeups

@@ -1,7 +1,7 @@
 #ifndef __THREADKIT_EVENT_COUNT_H__
 #define __THREADKIT_EVENT_COUNT_H__
 
-#include <stdint.h>
+#include "timeval.h"
 #include <atomic>
 
 namespace threadkit {
@@ -17,12 +17,12 @@ public:
 
     Key PrepareWait();
     void CancelWait();
-    void CommitWait(Key);
+    void CommitWait(Key, const TimeVal* timeout = nullptr);
     void NotifyOne();
     void NotifyAll();
 
     template <typename Predicate>
-    void Wait(Predicate&& stop_waiting) {
+    void Wait(Predicate&& stop_waiting, const TimeVal* timeout = nullptr) {
         if (stop_waiting()) {
             return;
         }
@@ -33,7 +33,7 @@ public:
                 CancelWait();
                 return;
             }
-            CommitWait(key);
+            CommitWait(key, timeout);
         }
     }
 
