@@ -29,6 +29,7 @@ public:
     */
     std::pair<Node*, bool> Pop();
 
+    /** @brief try to pop a node until no insertion is happening. */
     Node* PopNode() {
         std::pair<Node*, bool> ret_pair;
         do {
