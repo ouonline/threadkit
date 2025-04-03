@@ -2,22 +2,18 @@
 #define __THREADKIT_MUTEX_H__
 
 #include <stdint.h>
-#include <atomic>
 
 namespace threadkit {
 
 class Mutex final {
 public:
-    Mutex() : m_state(0) {
-        static_assert(sizeof(m_state) == sizeof(uint32_t), "atomic size mismatch");
-    }
-
+    Mutex() : m_state(0) {}
     void Lock();
     bool TryLock();
     void Unlock();
 
 private:
-    std::atomic<uint32_t> m_state;
+    uint32_t m_state;
 
 private:
     Mutex(const Mutex&) = delete;

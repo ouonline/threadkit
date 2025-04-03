@@ -1,5 +1,6 @@
 #include "threadkit/event_count.h"
 #include "futex_wrapper.h"
+#include <atomic>
 using namespace std;
 
 // based on https://github.com/facebook/folly/blob/main/folly/experimental/EventCount.h
@@ -24,7 +25,7 @@ static inline uint32_t* GetEpochAddr(uint64_t* v) {
 #define WAITER_MASK ((uint64_t)0xffffffff)
 
 EventCount::Key EventCount::PrepareWait() {
-    uint64_t prev = m_val.fetch_add(ONE_WAITER, std::memory_order_acq_rel);
+    uint64_t prev = atomic_ref<uint64_t>(m_val).fetch_add(ONE_WAITER, memory_order_acq_rel);
     return (prev >> EPOCH_SHIFT);
 }
 
@@ -33,11 +34,11 @@ void EventCount::CancelWait() {
       the faster #waiters gets to 0, the less likely it is that we'll do spurious wakeups
       (and thus system calls).
     */
-    m_val.fetch_sub(ONE_WAITER, std::memory_order_seq_cst);
+    atomic_ref<uint64_t>(m_val).fetch_sub(ONE_WAITER, memory_order_seq_cst);
 }
 
 void EventCount::CommitWait(EventCount::Key v, const TimeVal* timeout) {
-    volatile uint32_t* epoch = GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val));
+    volatile uint32_t* epoch = GetEpochAddr(&m_val);
     while (*epoch == v) {
         FutexWait(const_cast<uint32_t*>(epoch), v, timeout);
     }
@@ -45,20 +46,20 @@ void EventCount::CommitWait(EventCount::Key v, const TimeVal* timeout) {
       the faster #waiters gets to 0, the less likely it is that we'll do spurious wakeups
       (and thus system calls).
     */
-    m_val.fetch_sub(ONE_WAITER, std::memory_order_seq_cst);
+    atomic_ref<uint64_t>(m_val).fetch_sub(ONE_WAITER, memory_order_seq_cst);
 }
 
 void EventCount::NotifyOne() {
-    auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
+    auto prev = atomic_ref<uint64_t>(m_val).fetch_add(ONE_EPOCH, memory_order_acq_rel);
     if (prev & WAITER_MASK) {
-        FutexWakeOne(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));
+        FutexWakeOne(GetEpochAddr(&m_val));
     }
 }
 
 void EventCount::NotifyAll() {
-    auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
+    auto prev = atomic_ref<uint64_t>(m_val).fetch_add(ONE_EPOCH, memory_order_acq_rel);
     if (prev & WAITER_MASK) {
-        FutexWakeAll(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));
+        FutexWakeAll(GetEpochAddr(&m_val));
     }
 }
 
