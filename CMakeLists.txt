@@ -8,7 +8,11 @@ option(THREADKIT_INSTALL "install headers and libs" ON)
 option(THREADKIT_HOLD_DEPS "do not update existing deps" OFF)
 
 if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 20)
+else()
+    if(CMAKE_CXX_STANDARD LESS 20)
+        message(FATAL_ERROR "at least c++20 is required.")
+    endif()
 endif()
 
 # ----- targets ----- #

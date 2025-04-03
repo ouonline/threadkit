@@ -2,7 +2,7 @@
 #define __THREADKIT_EVENT_COUNT_H__
 
 #include "timeval.h"
-#include <atomic>
+#include <stdint.h>
 
 namespace threadkit {
 
@@ -11,10 +11,7 @@ public:
     typedef uint32_t Key;
 
 public:
-    EventCount() : m_val(0) {
-        static_assert(sizeof(m_val) == sizeof(uint64_t), "atomic size mismatch");
-    }
-
+    EventCount() : m_val(0) {}
     Key PrepareWait();
     void CancelWait();
     void CommitWait(Key, const TimeVal* timeout = nullptr);
@@ -39,7 +36,7 @@ public:
 
 private:
     // the epoch in the most significant 32 bits and the waiter count in the least significant 32 bits
-    std::atomic<uint64_t> m_val;
+    uint64_t m_val;
 
 private:
     EventCount(const EventCount&) = delete;
