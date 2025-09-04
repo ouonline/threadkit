@@ -30,7 +30,7 @@ static void TestPop() {
     SPSCBoundedQueue<int> q(N);
     assert(q.IsEmpty());
 
-    for (int i = 0; i < N; ++i) {
+    for (uint32_t i = 0; i < N; ++i) {
         assert(q.Push(values[i]));
         assert(!q.IsEmpty());
         if (i != N - 1) {
@@ -41,7 +41,7 @@ static void TestPop() {
     }
     assert(!q.Push(400));
 
-    for (int i = 0; i < N; ++i) {
+    for (uint32_t i = 0; i < N; ++i) {
         int ret = 0;
         assert(q.Pop(&ret));
         if (i != N - 1) {

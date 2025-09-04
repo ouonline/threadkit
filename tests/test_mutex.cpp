@@ -48,7 +48,7 @@ static void TestFunc(uint64_t* time_cost) {
     uint64_t counter = 0;
     {
         TimeRecord rec(time_cost);
-        tp.ParallelRun([&mtx, &counter](uint32_t idx) -> void {
+        tp.ParallelRun([&mtx, &counter](uint32_t) -> void {
             for (uint32_t i = 0; i < M; ++i) {
                 mtx.Lock();
                 ++counter;

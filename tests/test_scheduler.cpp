@@ -59,7 +59,7 @@ static void TestTryPop() {
 static void Thread0(Scheduler* sched, uint32_t* run_count, bool* thread1_alive) {
     while (true) {
         // invoke Pop() to trigger request stealing
-        auto node = sched->Pop(0);
+        sched->Pop(0);
         sched->m_push_idx.store(0, std::memory_order_seq_cst);
         SleepSec(1);
         ++(*run_count);
