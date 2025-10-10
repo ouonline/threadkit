@@ -5,7 +5,6 @@ project(threadkit)
 
 option(THREADKIT_BUILD_TESTS "build tests" ON)
 option(THREADKIT_INSTALL "install headers and libs" ON)
-option(THREADKIT_HOLD_DEPS "do not update existing deps" OFF)
 
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 14)
