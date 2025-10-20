@@ -1,17 +1,17 @@
-#ifndef __THREADKIT_EVENT_COUNT_H__
-#define __THREADKIT_EVENT_COUNT_H__
+#ifndef __THREADKIT_COND_VAR_H__
+#define __THREADKIT_COND_VAR_H__
 
 #include "timeval.h"
 #include <atomic>
 
 namespace threadkit {
 
-class EventCount final {
+class CondVar final {
 public:
     typedef uint32_t Key;
 
 public:
-    EventCount() : m_val(0) {
+    CondVar() : m_val(0) {
         static_assert(sizeof(m_val) == sizeof(uint64_t), "atomic size mismatch");
     }
 
@@ -42,10 +42,10 @@ private:
     std::atomic<uint64_t> m_val;
 
 private:
-    EventCount(const EventCount&) = delete;
-    EventCount(EventCount&&) = delete;
-    void operator=(const EventCount&) = delete;
-    void operator=(EventCount&&) = delete;
+    CondVar(const CondVar&) = delete;
+    CondVar(CondVar&&) = delete;
+    void operator=(const CondVar&) = delete;
+    void operator=(CondVar&&) = delete;
 };
 
 }

@@ -1,4 +1,4 @@
-#include "threadkit/event_count.h"
+#include "threadkit/cond_var.h"
 #include "futex_wrapper.h"
 using namespace std;
 
@@ -23,12 +23,12 @@ static inline uint32_t* GetEpochAddr(uint64_t* v) {
 #define ONE_EPOCH ((uint64_t)1 << EPOCH_SHIFT)
 #define WAITER_MASK ((uint64_t)0xffffffff)
 
-EventCount::Key EventCount::PrepareWait() {
+CondVar::Key CondVar::PrepareWait() {
     uint64_t prev = m_val.fetch_add(ONE_WAITER, std::memory_order_acq_rel);
     return (prev >> EPOCH_SHIFT);
 }
 
-void EventCount::CancelWait() {
+void CondVar::CancelWait() {
     /*
       the faster #waiters gets to 0, the less likely it is that we'll do spurious wakeups
       (and thus system calls).
@@ -36,7 +36,7 @@ void EventCount::CancelWait() {
     m_val.fetch_sub(ONE_WAITER, std::memory_order_seq_cst);
 }
 
-void EventCount::CommitWait(EventCount::Key v, const TimeVal* timeout) {
+void CondVar::CommitWait(CondVar::Key v, const TimeVal* timeout) {
     volatile uint32_t* epoch = GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val));
     while (*epoch == v) {
         FutexWait(const_cast<uint32_t*>(epoch), v, timeout);
@@ -48,14 +48,14 @@ void EventCount::CommitWait(EventCount::Key v, const TimeVal* timeout) {
     m_val.fetch_sub(ONE_WAITER, std::memory_order_seq_cst);
 }
 
-void EventCount::NotifyOne() {
+void CondVar::NotifyOne() {
     auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
     if (prev & WAITER_MASK) {
         FutexWakeOne(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));
     }
 }
 
-void EventCount::NotifyAll() {
+void CondVar::NotifyAll() {
     auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
     if (prev & WAITER_MASK) {
         FutexWakeAll(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));

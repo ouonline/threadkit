@@ -1,4 +1,4 @@
-#include "threadkit/event_count.h"
+#include "threadkit/cond_var.h"
 #include <iostream>
 using namespace std;
 using namespace threadkit;
@@ -12,7 +12,7 @@ using namespace threadkit;
 
 static void TestNotifyOne() {
     int value = 0;
-    EventCount ec;
+    CondVar ec;
 
     thread t1([&value, &ec]() -> void {
         ec.Wait([&value]() -> bool {
@@ -38,7 +38,7 @@ static void TestNotifyOne() {
 
 static void TestNotifyAll() {
     int value = 0;
-    EventCount ec;
+    CondVar ec;
 
     vector<thread> thread_list;
     for (uint32_t i = 0; i < 5; ++i) {

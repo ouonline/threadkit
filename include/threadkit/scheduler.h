@@ -2,7 +2,7 @@
 #define __THREADKIT_SCHEDULER_H__
 
 #include "mpsc_queue.h"
-#include "event_count.h"
+#include "cond_var.h"
 #include "mutex.h"
 #include <memory>
 
@@ -51,7 +51,7 @@ private:
 private:
     struct Info final {
         MPSCQueue queue;
-        EventCount cond;
+        CondVar cond;
         Mutex pop_lock;
     };
 

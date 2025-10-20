@@ -1,5 +1,5 @@
 #include "threadkit/threadpool.h"
-#include "threadkit/event_count.h"
+#include "threadkit/cond_var.h"
 #include <atomic>
 using namespace std;
 
@@ -116,7 +116,7 @@ void StaticThreadPool::ParallelRunAsync(const function<void(uint32_t)>& f) {
 
 void StaticThreadPool::ParallelRun(const function<void(uint32_t)>& f) {
     if (f) {
-        EventCount cond;
+        CondVar cond;
         atomic<uint32_t> nr_finished(0);
         auto nr_thread = m_thread_list.size();
 

@@ -1,7 +1,7 @@
 #ifndef __THREADKIT_BARRIER_H__
 #define __THREADKIT_BARRIER_H__
 
-#include "event_count.h"
+#include "cond_var.h"
 #include <atomic>
 
 namespace threadkit {
@@ -27,7 +27,7 @@ public:
 private:
     uint32_t m_max_count;
     std::atomic<uint32_t> m_counter;
-    EventCount m_cond;
+    CondVar m_cond;
 };
 
 }

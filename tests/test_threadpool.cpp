@@ -1,13 +1,13 @@
 #include <iostream>
 using namespace std;
 
-#include "threadkit/event_count.h"
+#include "threadkit/cond_var.h"
 #include "threadkit/threadpool.h"
 using namespace threadkit;
 
 class JoinableTask final : public ThreadTask {
 public:
-    JoinableTask(bool* finished, EventCount* cond) : m_finished(finished), m_cond(cond) {}
+    JoinableTask(bool* finished, CondVar* cond) : m_finished(finished), m_cond(cond) {}
     ThreadTask* Run(uint32_t) override {
         cout << "task [" << std::this_thread::get_id() << "]: Hello, world!" << endl;
         *m_finished = true;
@@ -20,7 +20,7 @@ public:
 
 private:
     bool* m_finished;
-    EventCount* m_cond;
+    CondVar* m_cond;
 };
 
 static void TestDeleter(ThreadTask* t) {
@@ -32,7 +32,7 @@ static void TestTask(void) {
     ThreadPool tp;
     tp.Init(2);
 
-    EventCount cond;
+    CondVar cond;
     bool finished = false;
 
     JoinableTask task(&finished, &cond);
@@ -50,7 +50,7 @@ static void TestAsync(void) {
     StaticThreadPool tp;
     tp.Init(N);
 
-    EventCount cond;
+    CondVar cond;
     atomic<uint32_t> nr_finished(0);
     tp.ParallelRunAsync([&nr_finished, &cond](uint32_t thread_idx) -> void {
         cout << "thread [" << thread_idx << "] finished." << endl;
