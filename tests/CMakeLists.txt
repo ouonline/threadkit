@@ -27,3 +27,6 @@ target_include_directories(test_mpmc_bounded_queue PRIVATE ../include)
 
 add_executable(test_spsc_queue test_spsc_queue.cpp)
 target_include_directories(test_spsc_queue PRIVATE ../include)
+
+add_executable(test_mcs_spinlock test_mcs_spinlock.cpp)
+target_link_libraries(test_mcs_spinlock PRIVATE threadkit_static)
