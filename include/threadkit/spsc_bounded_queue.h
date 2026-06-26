@@ -4,7 +4,6 @@
 /** single-producer-single-consumer bounded queue implementation */
 
 #include <atomic>
-#include <vector>
 #include "common.h"
 
 namespace threadkit {
@@ -12,9 +11,14 @@ namespace threadkit {
 template <typename T>
 class SPSCBoundedQueue final {
 public:
-    SPSCBoundedQueue(uint32_t max_nr_item) : m_buffer(max_nr_item + 1) {
+    SPSCBoundedQueue(uint32_t max_nr_item) : m_buffer_size(max_nr_item + 1) {
+        m_buffer = new T[max_nr_item + 1];
         m_head.store(0, std::memory_order_relaxed);
         m_tail.store(0, std::memory_order_relaxed);
+    }
+
+    ~SPSCBoundedQueue() {
+        delete m_buffer;
     }
 
     SPSCBoundedQueue(SPSCBoundedQueue&& rhs) {
@@ -65,16 +69,17 @@ public:
 
 private:
     uint32_t Next(uint32_t cursor) const {
-        return (cursor + 1) % m_buffer.size();
+        return (cursor + 1) % m_buffer_size;
     }
 
     void DoMove(SPSCBoundedQueue&& rhs) {
         m_head.store(rhs.m_head.load(std::memory_order_relaxed), std::memory_order_relaxed);
         m_tail.store(rhs.m_tail.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        m_buffer = std::move(rhs.m_buffer);
+        m_buffer = rhs.m_buffer;
 
         rhs.m_head.store(0, std::memory_order_relaxed);
         rhs.m_tail.store(0, std::memory_order_relaxed);
+        rhs.m_buffer = nullptr;
     }
 
 private:
@@ -86,7 +91,9 @@ private:
         std::atomic<uint32_t> m_tail;
         char padding2[CACHELINE_SIZE];
     };
-    std::vector<T> m_buffer;
+    const uint32_t m_buffer_size;
+    T* m_buffer;
+
 
 private:
     SPSCBoundedQueue(const SPSCBoundedQueue&) = delete;

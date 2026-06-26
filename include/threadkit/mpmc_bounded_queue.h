@@ -7,7 +7,6 @@
 */
 
 #include <atomic>
-#include <vector>
 #include "common.h"
 
 namespace threadkit {
@@ -27,12 +26,17 @@ private:
 
 public:
     // `sz` MUST be power of 2
-    MPMCBoundedQueue(uint64_t sz) : m_buffer_mask(sz - 1), m_buffer(sz) {
+    MPMCBoundedQueue(uint64_t sz) : m_buffer_mask(sz - 1) {
+        m_buffer = new Cell[sz];
         for (uint64_t i = 0; i < sz; ++i) {
             m_buffer[i].seq.store(i, std::memory_order_relaxed);
         }
         m_push_idx.store(0, std::memory_order_relaxed);
         m_pop_idx.store(0, std::memory_order_relaxed);
+    }
+
+    ~MPMCBoundedQueue() {
+        delete [] m_buffer;
     }
 
     template <typename DataType>
@@ -100,7 +104,7 @@ private:
         char padding2[CACHELINE_SIZE];
     };
     const uint64_t m_buffer_mask;
-    std::vector<Cell> m_buffer;
+    Cell* m_buffer;
 
 private:
     MPMCBoundedQueue(const MPMCBoundedQueue&) = delete;
