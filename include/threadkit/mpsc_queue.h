@@ -1,9 +1,9 @@
 #ifndef __THREADKIT_MPSC_QUEUE_H__
 #define __THREADKIT_MPSC_QUEUE_H__
 
+#include "common.h"
 #include <atomic>
 #include <utility> // std::pair
-#include "common.h"
 
 namespace threadkit {
 
@@ -12,12 +12,12 @@ namespace threadkit {
 class MPSCQueue final {
 public:
     struct Node {
-        std::atomic<Node*> mpsc_next;
+        std::atomic<Node*> next;
     };
 
 public:
     MPSCQueue() : m_head(&m_stub), m_tail(&m_stub) {
-        m_stub.mpsc_next.store(nullptr, std::memory_order_relaxed);
+        m_stub.next.store(nullptr, std::memory_order_relaxed);
     }
 
     /** @return tells whether queue may be empty or not before inserting `node`. */
@@ -32,9 +32,13 @@ public:
     /** @brief try to pop a node until no insertion is happening. */
     Node* PopNode() {
         std::pair<Node*, bool> ret_pair;
-        do {
+        while (true) {
             ret_pair = Pop();
-        } while (!ret_pair.first && !ret_pair.second);
+            if (ret_pair.first || ret_pair.second) {
+                break;
+            }
+            CpuRelax();
+        }
         return ret_pair.first;
     }
 

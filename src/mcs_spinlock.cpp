@@ -47,7 +47,7 @@ void MCSSpinLock::Lock(Node* node) {
         */
 
         while (node->locked.load(memory_order_acquire)) {
-            cpu_relax();
+            CpuRelax();
         }
     }
 }
@@ -91,7 +91,7 @@ void MCSSpinLock::Unlock(Node* node) {
         */
 
         while ((next = node->next.load(memory_order_acquire)) == nullptr) {
-            cpu_relax();
+            CpuRelax();
         }
 
         /*

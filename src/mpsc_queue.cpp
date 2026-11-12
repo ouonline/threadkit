@@ -10,7 +10,7 @@ namespace threadkit {
 */
 
 bool MPSCQueue::Push(Node* node) {
-    node->mpsc_next.store(nullptr, std::memory_order_relaxed);
+    node->next.store(nullptr, std::memory_order_relaxed);
 
     /*
       +--------+
@@ -37,7 +37,7 @@ bool MPSCQueue::Push(Node* node) {
       +------+
     */
 
-    prev->mpsc_next.store(node, std::memory_order_release);
+    prev->next.store(node, std::memory_order_release);
 
     /*
                    m_tail
@@ -53,7 +53,7 @@ bool MPSCQueue::Push(Node* node) {
 
 pair<MPSCQueue::Node*, bool> MPSCQueue::Pop() {
     auto head = m_head;
-    auto next = head->mpsc_next.load(std::memory_order_acquire);
+    auto next = head->next.load(std::memory_order_acquire);
 
     if (head == &m_stub) {
         if (!next) {
@@ -101,7 +101,7 @@ pair<MPSCQueue::Node*, bool> MPSCQueue::Pop() {
           +--------+    +------+
         */
 
-        next = next->mpsc_next.load(std::memory_order_acquire);
+        next = next->next.load(std::memory_order_acquire);
 
         /*
                           head
@@ -204,7 +204,7 @@ pair<MPSCQueue::Node*, bool> MPSCQueue::Pop() {
                tail               m_tail
     */
 
-    next = head->mpsc_next.load(std::memory_order_acquire);
+    next = head->next.load(std::memory_order_acquire);
 
     /*
               m_head
