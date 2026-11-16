@@ -85,9 +85,8 @@ public:
 
         if (data) {
             *data = std::move(cell->data);
-        } else {
-            cell->data.~T();
         }
+        // cell->data will be deleted when it is overwritten
 
         cell->seq.store(idx + m_buffer_mask + 1, std::memory_order_release);
 

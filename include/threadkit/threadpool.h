@@ -74,11 +74,14 @@ public:
     void ParallelRunAsync(const std::function<void(uint32_t thread_idx)>&);
 
 private:
-    static void ThreadFunc(uint32_t, Barrier*, const std::function<void(uint32_t)>*);
+    void ThreadFunc(uint32_t);
 
 private:
+    std::atomic<bool> m_stop = {true};
     std::function<void(uint32_t)> m_func;
     Barrier m_start_barrier;
+    CondVar m_cond;
+    std::atomic<uint32_t> m_nr_finished;
     std::vector<std::thread> m_thread_list;
 };
 

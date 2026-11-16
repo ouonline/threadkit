@@ -122,9 +122,8 @@ public:
         if (next) {
             if (data) {
                 *data = std::move(next->data);
-            } else {
-                next->data.~T();
             }
+            // next->data will be deleted when it is overwritten
 
             m_head.store(next, std::memory_order_release);
 

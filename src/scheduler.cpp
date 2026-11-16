@@ -6,24 +6,27 @@ using namespace std;
 namespace threadkit {
 
 void Scheduler::DoMove(Scheduler&& s) {
-    m_push_idx.store(s.m_push_idx.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    m_active.store(s.m_active.load(memory_order_relaxed),
+                   memory_order_relaxed);
+    m_push_idx.store(s.m_push_idx.load(memory_order_relaxed),
+                     memory_order_relaxed);
     m_num = s.m_num;
-    m_info_list = std::move(s.m_info_list);
+    m_info_list = move(s.m_info_list);
 
-    s.m_push_idx.store(0, std::memory_order_relaxed);
+    s.m_active.store(false, memory_order_relaxed);
+    s.m_push_idx.store(0, memory_order_relaxed);
     s.m_num = 0;
 }
 
 Scheduler::Scheduler(Scheduler&& s) {
     if (&s != this) {
-        DoMove(std::move(s));
+        DoMove(move(s));
     }
 }
 
 void Scheduler::operator=(Scheduler&& s) {
     if (&s != this) {
-        Destroy();
-        DoMove(std::move(s));
+        DoMove(move(s));
     }
 }
 
@@ -32,8 +35,6 @@ bool Scheduler::Init(uint32_t num) {
     m_num = num;
     return true;
 }
-
-void Scheduler::Destroy() {}
 
 void Scheduler::Push(MPSCQueue::Node* node, uint32_t idx) {
     auto info = &m_info_list[idx];
@@ -44,7 +45,7 @@ void Scheduler::Push(MPSCQueue::Node* node, uint32_t idx) {
 }
 
 void Scheduler::Push(MPSCQueue::Node* node) {
-    auto idx = m_push_idx.fetch_add(1, std::memory_order_acquire) % m_num;
+    auto idx = m_push_idx.fetch_add(1, memory_order_acquire) % m_num;
     Push(node, idx);
 }
 
@@ -66,7 +67,7 @@ MPSCQueue::Node* Scheduler::AskForReqInRange(uint32_t begin, uint32_t end) {
 // try to get a request from most recently pushed queues
 MPSCQueue::Node* Scheduler::AskForReq(uint32_t curr_idx) {
     MPSCQueue::Node* ret;
-    auto curr_push_idx = m_push_idx.load(std::memory_order_relaxed) % m_num;
+    auto curr_push_idx = m_push_idx.load(memory_order_relaxed) % m_num;
 
     if (curr_push_idx <= curr_idx) {
         ret = AskForReqInRange(0, curr_push_idx);
@@ -112,7 +113,7 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
     while (true) {
         auto key = cond->PrepareWait();
         node = TryPop(idx);
-        if (node || !m_active) {
+        if (node || !m_active.load(memory_order_acquire)) {
             cond->CancelWait();
             break;
         }
@@ -124,11 +125,11 @@ MPSCQueue::Node* Scheduler::Pop(uint32_t idx) {
 }
 
 void Scheduler::Start() {
-    m_active = true;
+    m_active.store(true, memory_order_release);
 }
 
 void Scheduler::Stop() {
-    m_active = false;
+    m_active.store(false, memory_order_release);
     for (uint32_t i = 0; i < m_num; ++i) {
         m_info_list[i].cond.NotifyAll();
     }

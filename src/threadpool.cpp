@@ -32,7 +32,7 @@ bool ThreadPool::Init(uint32_t thread_num) {
     }
 
     if (thread_num == 0) {
-        thread_num = std::max(std::thread::hardware_concurrency(), 2u) - 1;
+        thread_num = max(thread::hardware_concurrency(), 2u) - 1;
     }
 
     if (!m_sched.Init(thread_num)) {
@@ -43,7 +43,7 @@ bool ThreadPool::Init(uint32_t thread_num) {
 
     m_thread_list.reserve(thread_num);
     for (uint32_t i = 0; i < thread_num; ++i) {
-        m_thread_list.emplace_back(std::thread(ThreadFunc, i, &m_sched));
+        m_thread_list.emplace_back(thread(ThreadFunc, i, &m_sched));
     }
 
     return true;
@@ -64,23 +64,26 @@ void ThreadPool::Destroy() {
             t->join();
         }
         m_thread_list.clear();
-
-        m_sched.Destroy();
     }
 }
 
 /* ------------------------------------------------------------------------- */
 
 bool StaticThreadPool::Init(uint32_t thread_num) {
-    if (thread_num == 0) {
-        thread_num = std::max(std::thread::hardware_concurrency(), 2u) - 1;
+    if (!m_thread_list.empty()) {
+        return true;
     }
 
+    if (thread_num == 0) {
+        thread_num = max(thread::hardware_concurrency(), 2u) - 1;
+    }
+
+    m_stop.store(false, memory_order_relaxed);
     m_start_barrier.ResetMaxCount(thread_num + 1);
 
     m_thread_list.reserve(thread_num);
     for (uint32_t i = 0; i < thread_num; ++i) {
-        m_thread_list.emplace_back(std::thread(ThreadFunc, i, &m_start_barrier, &m_func));
+        m_thread_list.emplace_back(thread(&StaticThreadPool::ThreadFunc, this, i));
     }
 
     return true;
@@ -88,49 +91,44 @@ bool StaticThreadPool::Init(uint32_t thread_num) {
 
 void StaticThreadPool::Destroy() {
     if (!m_thread_list.empty()) {
-        m_func = nullptr;
+        m_stop.store(true, memory_order_release);
         m_start_barrier.Wait();
         for (uint32_t i = 0; i < m_thread_list.size(); ++i) {
             m_thread_list[i].join();
         }
+        m_func = nullptr;
         m_thread_list.clear();
     }
 }
 
-void StaticThreadPool::ThreadFunc(uint32_t thread_idx, Barrier* barrier, const function<void(uint32_t)>* func) {
+void StaticThreadPool::ThreadFunc(uint32_t thread_idx) {
     while (true) {
-        barrier->Wait();
-        if (!(*func)) {
+        m_start_barrier.Wait();
+        if (m_stop.load(memory_order_acquire) || !m_func) {
             break;
         }
-        (*func)(thread_idx);
+        m_func(thread_idx);
+        m_nr_finished.fetch_add(1, memory_order_acq_rel);
+        m_cond.NotifyOne();
     }
 }
 
 void StaticThreadPool::ParallelRunAsync(const function<void(uint32_t)>& f) {
     m_func = f;
     if (f) {
+        m_nr_finished.store(0, memory_order_release);
         m_start_barrier.Wait();
     }
 }
 
 void StaticThreadPool::ParallelRun(const function<void(uint32_t)>& f) {
     if (f) {
-        CondVar cond;
-        atomic<uint32_t> nr_finished(0);
-        auto nr_thread = m_thread_list.size();
-
-        m_func = [&nr_finished, nr_thread, &cond, &f](uint32_t thread_idx) -> void {
-            f(thread_idx);
-            auto count = nr_finished.fetch_add(1, std::memory_order_acq_rel) + 1;
-            if (count >= nr_thread) {
-                cond.NotifyOne();
-            }
-        };
+        m_func = f;
+        m_nr_finished.store(0, memory_order_release);
         m_start_barrier.Wait();
-
-        cond.Wait([nr_thread, &nr_finished]() -> bool {
-            return (nr_finished.load(std::memory_order_acquire) >= nr_thread);
+        m_cond.Wait([&]() -> bool {
+            return (m_nr_finished.load(memory_order_acquire) >=
+                    m_thread_list.size());
         });
 
         m_func = nullptr;

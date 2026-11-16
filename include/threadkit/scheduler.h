@@ -15,12 +15,7 @@ public:
     Scheduler(Scheduler&&);
     void operator=(Scheduler&&);
 
-    ~Scheduler() {
-        Destroy();
-    }
-
     bool Init(uint32_t num);
-    void Destroy();
 
     void Start();
     void Stop();
@@ -34,7 +29,7 @@ public:
     MPSCQueue::Node* TryPop(uint32_t idx);
 
     bool IsActive() const {
-        return m_active;
+        return m_active.load(std::memory_order_acquire);
     }
 
 private:
@@ -56,7 +51,7 @@ private:
     };
 
 private:
-    bool m_active;
+    std::atomic<bool> m_active;
     std::atomic<uint32_t> m_push_idx;
     std::unique_ptr<Info[]> m_info_list;
     uint32_t m_num;

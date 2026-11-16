@@ -11,14 +11,14 @@ namespace threadkit {
 template <typename T>
 class SPSCBoundedQueue final {
 public:
-    SPSCBoundedQueue(uint32_t max_nr_item) : m_buffer_size(max_nr_item + 1) {
-        m_buffer = new T[max_nr_item + 1];
+    SPSCBoundedQueue(uint32_t max_nr_item)
+        : m_buffer_size(max_nr_item + 1), m_buffer(new T[max_nr_item + 1]) {
         m_head.store(0, std::memory_order_relaxed);
         m_tail.store(0, std::memory_order_relaxed);
     }
 
     ~SPSCBoundedQueue() {
-        delete m_buffer;
+        delete[] m_buffer;
     }
 
     SPSCBoundedQueue(SPSCBoundedQueue&& rhs) {
@@ -26,7 +26,10 @@ public:
     }
 
     void operator=(SPSCBoundedQueue&& rhs) {
-        DoMove(std::move(rhs));
+        if (&rhs != this) {
+            delete[] m_buffer;
+            DoMove(std::move(rhs));
+        }
     }
 
     template <typename DataType>
@@ -51,9 +54,8 @@ public:
 
         if (data) {
             *data = std::move(m_buffer[head]);
-        } else {
-            m_buffer[head].~T();
         }
+        // m_buffer[head] will be deleted when it is overwritten
 
         m_head.store(Next(head), std::memory_order_release);
         return true;
@@ -75,10 +77,12 @@ private:
     void DoMove(SPSCBoundedQueue&& rhs) {
         m_head.store(rhs.m_head.load(std::memory_order_relaxed), std::memory_order_relaxed);
         m_tail.store(rhs.m_tail.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        m_buffer_size = rhs.m_buffer_size;
         m_buffer = rhs.m_buffer;
 
         rhs.m_head.store(0, std::memory_order_relaxed);
         rhs.m_tail.store(0, std::memory_order_relaxed);
+        rhs.m_buffer_size = 0;
         rhs.m_buffer = nullptr;
     }
 
@@ -91,7 +95,7 @@ private:
         std::atomic<uint32_t> m_tail;
         char padding2[CACHELINE_SIZE];
     };
-    const uint32_t m_buffer_size;
+    uint32_t m_buffer_size;
     T* m_buffer;
 
 

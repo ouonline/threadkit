@@ -2,7 +2,7 @@
 #include "futex_wrapper.h"
 using namespace std;
 
-// based on https://github.com/facebook/folly/blob/main/folly/experimental/EventCount.h
+// based on https://github.com/meta/folly/blob/main/folly/synchronization/EventCount.h
 
 namespace threadkit {
 
@@ -24,7 +24,7 @@ static inline uint32_t* GetEpochAddr(uint64_t* v) {
 #define WAITER_MASK ((uint64_t)0xffffffff)
 
 CondVar::Key CondVar::PrepareWait() {
-    uint64_t prev = m_val.fetch_add(ONE_WAITER, std::memory_order_acq_rel);
+    uint64_t prev = m_val.fetch_add(ONE_WAITER, memory_order_acq_rel);
     return (prev >> EPOCH_SHIFT);
 }
 
@@ -33,30 +33,38 @@ void CondVar::CancelWait() {
       the faster #waiters gets to 0, the less likely it is that we'll do spurious wakeups
       (and thus system calls).
     */
-    m_val.fetch_sub(ONE_WAITER, std::memory_order_seq_cst);
+    m_val.fetch_sub(ONE_WAITER, memory_order_seq_cst);
 }
 
-void CondVar::CommitWait(CondVar::Key v, const TimeVal* timeout) {
+bool CondVar::CommitWait(CondVar::Key v, const TimeVal* timeout) {
+    bool is_expected = true;
+
     volatile uint32_t* epoch = GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val));
-    while (*epoch == v) {
-        FutexWait(const_cast<uint32_t*>(epoch), v, timeout);
+    while ((m_val.load(memory_order_acquire) >> EPOCH_SHIFT) == v) {
+        is_expected = FutexWait(const_cast<uint32_t*>(epoch), v, timeout);
+        if (!is_expected) {
+            break;
+        }
     }
+
     /*
       the faster #waiters gets to 0, the less likely it is that we'll do spurious wakeups
       (and thus system calls).
     */
-    m_val.fetch_sub(ONE_WAITER, std::memory_order_seq_cst);
+    m_val.fetch_sub(ONE_WAITER, memory_order_seq_cst);
+
+    return is_expected;
 }
 
 void CondVar::NotifyOne() {
-    auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
+    auto prev = m_val.fetch_add(ONE_EPOCH, memory_order_acq_rel);
     if (prev & WAITER_MASK) {
         FutexWakeOne(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));
     }
 }
 
 void CondVar::NotifyAll() {
-    auto prev = m_val.fetch_add(ONE_EPOCH, std::memory_order_acq_rel);
+    auto prev = m_val.fetch_add(ONE_EPOCH, memory_order_acq_rel);
     if (prev & WAITER_MASK) {
         FutexWakeAll(GetEpochAddr(reinterpret_cast<uint64_t*>(&m_val)));
     }

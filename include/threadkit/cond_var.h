@@ -17,23 +17,24 @@ public:
 
     Key PrepareWait();
     void CancelWait();
-    void CommitWait(Key, const TimeVal* timeout = nullptr);
+    bool CommitWait(Key, const TimeVal* timeout = nullptr);
     void NotifyOne();
     void NotifyAll();
 
     template <typename Predicate>
-    void Wait(Predicate&& stop_waiting, const TimeVal* timeout = nullptr) {
-        if (stop_waiting()) {
-            return;
-        }
-
-        while (true) {
-            auto key = PrepareWait();
-            if (stop_waiting()) {
-                CancelWait();
-                return;
+    void Wait(Predicate&& stop_waiting) {
+        try {
+            while (true) {
+                auto key = PrepareWait();
+                if (stop_waiting()) {
+                    CancelWait();
+                    return;
+                }
+                CommitWait(key);
             }
-            CommitWait(key, timeout);
+        } catch (...) {
+            CancelWait();
+            throw;
         }
     }
 

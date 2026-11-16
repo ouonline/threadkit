@@ -26,7 +26,7 @@ endif()
 
 # ----- dependencies ----- #
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(threadkit_static PUBLIC pthread)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(threadkit_static PUBLIC synchronization)
